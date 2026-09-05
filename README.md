@@ -336,6 +336,8 @@ pnpm verify      # build, typecheck, test
 
 Node 20.11+ and pnpm 10.
 
+[docs/releasing.md](docs/releasing.md) is the order these packages publish in, and why it is an order rather than a set.
+
 <br />
 
 ## Why we built this
