@@ -10,8 +10,10 @@ const count = (n: number, singular: string): string =>
 const describe = (validated: ValidatedDocument): string => {
   switch (validated.kind) {
     case "graph": {
-      const { lanes, nodes, edges, flows, lenses } = validated.document;
-      return `graph document · ${count(lanes.length, "lane")}, ${count(nodes.length, "node")}, ${count(edges.length, "edge")}, ${count(flows.length, "flow")} · ${lenses.join(", ")}`;
+      const { lanes, nodes, edges, flows, lenses, walkthrough } = validated.document;
+      const tour =
+        walkthrough === undefined ? "" : ` · ${count(walkthrough.steps.length, "walkthrough step")}`;
+      return `graph document · ${count(lanes.length, "lane")}, ${count(nodes.length, "node")}, ${count(edges.length, "edge")}, ${count(flows.length, "flow")} · ${lenses.join(", ")}${tour}`;
     }
     case "patch":
       return `patch document · ${count(validated.document.ops.length, "operation")} · ${validated.document.target.fromSha.slice(0, 7)} → ${validated.document.target.toSha.slice(0, 7)}`;
