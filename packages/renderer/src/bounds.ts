@@ -1,24 +1,21 @@
 import type { Box } from "./geometry.js";
 
-/** The smallest box containing all of them, or nothing when there are none. */
-export const union = (boxes: readonly Box[]): Box | undefined => {
-  const first = boxes[0];
-  if (first === undefined) return undefined;
-
-  let left = first.x;
-  let top = first.y;
-  let right = first.x + first.width;
-  let bottom = first.y + first.height;
-
-  for (const box of boxes) {
-    left = Math.min(left, box.x);
-    top = Math.min(top, box.y);
-    right = Math.max(right, box.x + box.width);
-    bottom = Math.max(bottom, box.y + box.height);
-  }
+/** The smallest box containing both of them. */
+export const covering = (a: Box, b: Box): Box => {
+  const left = Math.min(a.x, b.x);
+  const top = Math.min(a.y, b.y);
+  const right = Math.max(a.x + a.width, b.x + b.width);
+  const bottom = Math.max(a.y + a.height, b.y + b.height);
 
   return { x: left, y: top, width: right - left, height: bottom - top };
 };
+
+/** The smallest box containing all of them, or nothing when there are none. */
+export const union = (boxes: readonly Box[]): Box | undefined =>
+  boxes.reduce<Box | undefined>(
+    (grown, box) => (grown === undefined ? box : covering(grown, box)),
+    undefined,
+  );
 
 export type Canvas = { width: number; height: number; shiftX: number; shiftY: number };
 

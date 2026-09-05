@@ -10,11 +10,12 @@ export type Side = "top" | "right" | "bottom" | "left";
  * arithmetic that differs in the last bit would otherwise change the bytes of
  * the document without changing the picture, and the render hash with it.
  */
-export const coord = (value: number): string => {
+export const roundCoord = (value: number): number => {
   const rounded = Math.round(value * 100) / 100;
-  const normalised = Object.is(rounded, -0) ? 0 : rounded;
-  return String(normalised);
+  return Object.is(rounded, -0) ? 0 : rounded;
 };
+
+export const coord = (value: number): string => String(roundCoord(value));
 
 export const boxCentre = (box: Box): Point => ({
   x: box.x + box.width / 2,

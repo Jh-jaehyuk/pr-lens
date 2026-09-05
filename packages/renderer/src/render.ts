@@ -1,5 +1,6 @@
 import type { Config, GraphDoc, Lens, RenderAsset, RenderManifest, View, ViewScope } from "@coldtea/pr-lens-schema";
 import { assertNever, MAX_RENDER_ASSETS } from "@coldtea/pr-lens-schema";
+import type { RenderAtlas } from "./atlas.js";
 import { applyCorrections } from "./corrections.js";
 import { PrLensRenderError } from "./errors.js";
 import { buildManifest, contentHash, renderAssetFileName, renderAssetId } from "./manifest.js";
@@ -26,6 +27,8 @@ export type RenderedSvg = {
   theme: Theme;
   view: string | undefined;
   animated: boolean;
+  /** Where every lane, node, edge and flow step of this picture landed. */
+  atlas: RenderAtlas;
 };
 
 const WHOLE_DOCUMENT: ViewScope = { kind: "all" };
@@ -38,7 +41,7 @@ const paint = (
   graph: ScopedGraph,
   doc: GraphDoc,
   theme: Theme,
-): { width: number; height: number; body: string; animated: boolean } => {
+): { width: number; height: number; body: string; animated: boolean; atlas: RenderAtlas } => {
   const palette = paletteFor(theme);
 
   switch (lens) {
@@ -84,7 +87,12 @@ export const render = (doc: GraphDoc, options: RenderOptions): RenderedSvg => {
   const scope = view?.scope ?? WHOLE_DOCUMENT;
   const graph = resolveScope(prepared, scope);
 
-  const { width, height, body, animated } = paint(options.lens, graph, prepared, options.theme);
+  const { width, height, body, animated, atlas } = paint(
+    options.lens,
+    graph,
+    prepared,
+    options.theme,
+  );
 
   const svg = svgDocument({
     width,
@@ -95,7 +103,16 @@ export const render = (doc: GraphDoc, options: RenderOptions): RenderedSvg => {
     body,
   });
 
-  return { svg, width, height, lens: options.lens, theme: options.theme, view: view?.id, animated };
+  return {
+    svg,
+    width,
+    height,
+    lens: options.lens,
+    theme: options.theme,
+    view: view?.id,
+    animated,
+    atlas,
+  };
 };
 
 const requireView = (views: readonly View[], id: string): View => {

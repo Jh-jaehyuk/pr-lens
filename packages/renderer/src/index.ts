@@ -10,7 +10,11 @@ export {
   type RenderOptions,
 } from "./render.js";
 
+export { emptyAtlas, type RenderAtlas } from "./atlas.js";
+
 export { PrLensRenderError, type RenderErrorCode } from "./errors.js";
+
+export type { Box } from "./geometry.js";
 
 export { paletteFor, THEMES, type Palette, type Theme } from "./theme.js";
 
