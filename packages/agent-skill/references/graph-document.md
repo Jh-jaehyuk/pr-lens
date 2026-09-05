@@ -204,6 +204,40 @@ This compact fragment shows the shape. The selected ids refer to elements declar
 }
 ```
 
+## Walkthrough
+
+Optional. An ordered tour of the document's diagrams, which a canvas or a share page plays. 2 to 12 steps, ordered by array position.
+
+```json
+{
+  "walkthrough": {
+    "steps": [
+      {
+        "id": "blast-radius",
+        "heading": "One change, three lanes",
+        "body": "Everything the pull request touched, at once.",
+        "stage": { "kind": "view", "view": "overview" },
+        "focus": { "kind": "all" }
+      },
+      {
+        "id": "four-batch-calls",
+        "heading": "Four batch calls, one run",
+        "stage": { "kind": "flow", "flow": "send-pipeline" },
+        "focus": { "kind": "selection", "messages": ["batch-post", "batch-results"] }
+      }
+    ]
+  }
+}
+```
+
+- `heading` is 1 to 48 characters and `body`, which is optional, 1 to 140. The caps are the contract rather than advice: the rail draws one line per step.
+- Step ids are unique within the walkthrough.
+- `stage` is the picture the step plays over: `{ "kind": "view", "view": … }` or `{ "kind": "flow", "flow": … }`. Leave it out and the step plays over whatever the reader is already looking at.
+- `focus` is `{ "kind": "all" }`, the default, or a selection naming at least one lane, node, edge or flow step. Two distinct states on purpose, for the same reason a view scope has two: a step that loses the last element it named must never quietly become a step about everything.
+- `messages` names steps of a flow, so it says something only when the stage draws that flow. A `flow` stage draws its own steps. A `view` stage draws every flow when its scope is `all`, and only the flows it lists when its scope is a selection.
+- Flow step ids are unique inside their own flow, not across the document, so two flows may each carry a `retry` and the stage is the only thing that says which one a focus meant.
+- A stored map cannot carry a walkthrough. A map describes a system, and a walkthrough narrates a change through one.
+
 ## Layout
 
 ```json

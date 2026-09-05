@@ -100,6 +100,23 @@ test("the lane rule the pages teach is the lane rule the renderer implements", (
   expect(skill).toContain("may name a lane the document never declared");
 });
 
+/**
+ * The reason this page tells an agent to validate rather than trust its own
+ * structured output. The contract's README counts these rules, and a skill
+ * that counts fewer understates what a schema alone cannot catch.
+ */
+test("the skill counts the parser-only rules the contract counts", async () => {
+  const counted = (page: string): string | undefined =>
+    /\b(\w+) rules cannot be (?:stated|expressed) in JSON Schema\b/
+      .exec(page)?.[1]
+      ?.toLowerCase();
+
+  const contract = await read("../schema/README.md");
+
+  expect(counted(skill)).toBeDefined();
+  expect(counted(contract)).toBe(counted(skill));
+});
+
 test("the contract version the pages tell an agent to write is the one that ships", () => {
   for (const page of [skill, graphGuide, configGuide]) {
     for (const version of page.match(/schemaVersion["']?\s*[:=]\s*["']?([\d.]+)/g) ?? []) {

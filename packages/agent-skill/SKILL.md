@@ -15,7 +15,7 @@ The diff or code is represented as one JSON document (lanes, nodes, edges, order
 
    If not expressing a code diff, read the code to be visually represented
 
-2. **Write the document** to `.pr-lens/graph.json`, following `references/graph-document.md`. `references/example.graph.json` is valid reference with three lanes, all four delta states, a hero edge, a seven-step flow, a nested drill-down tree. Read it before you write your first one. It is quicker than reading the reference.
+2. **Write the document** to `.pr-lens/graph.json`, following `references/graph-document.md`. `references/example.graph.json` is valid reference with three lanes, all four delta states, a hero edge, a seven-step flow, a nested drill-down tree and a six-step walkthrough. Read it before you write your first one. It is quicker than reading the reference.
 
 3. **Validate, and fix**
 
@@ -101,18 +101,55 @@ Every child moves down one level and covers a materially narrower scope. Skip em
 
 Keep data-flow views as separate roots rather than nesting them in the architecture tree. Set `defaultOpen: true` on the highest useful architecture view. Lower levels should normally keep the default, `false`.
 
+## Writing a walkthrough
+
+A document can carry a `walkthrough`: an ordered set of steps, each one a heading and the part of one diagram it points at. A canvas plays it, and the reader scrolls through it.
+
+Write one when the document has more than one view, or a flow worth reading in order. Leave it out when there is a single picture and nothing to point at, because a tour of one thing is a caption.
+
+Aim for three to seven steps. The contract allows two to twelve.
+
+```json
+"walkthrough": {
+  "steps": [
+    {
+      "id": "blast-radius",
+      "heading": "One change, three lanes",
+      "body": "Everything the pull request touched, at once.",
+      "stage": { "kind": "view", "view": "overview" }
+    },
+    {
+      "id": "four-batch-calls",
+      "heading": "Four batch calls, one run",
+      "body": "500 messages a call, and Postmark answers each one.",
+      "stage": { "kind": "flow", "flow": "send-pipeline" },
+      "focus": { "kind": "selection", "messages": ["batch-post", "batch-results"] }
+    }
+  ]
+}
+```
+
+- A heading is at most 48 characters, and it is a beat rather than a label: "The old path goes dark", not "Removed functions". A `body` is optional, one line, at most 140 characters. Write for someone looking at the picture, not reading a paragraph.
+- `stage` is the diagram the step plays over: one of your views, or one of your flows on its own. Open on the widest view with the focus left out, so the reader sees the whole thing before it narrows.
+- `focus` is `all`, the default, or a selection of `lanes`, `nodes`, `edges` and `messages`. Point at two or three elements. A step that lights half the diagram has not said anything.
+- Keep consecutive steps on the same stage together. Every change of stage flies the camera across the canvas, so a tour that alternates between two diagrams spends its time travelling.
+
+`messages` names steps of a flow, and a flow step's id is unique inside its own flow rather than across the document: two flows may each carry a `retry`. So a focused flow step has to be one the step's own stage draws. A `flow` stage draws its own steps. A `view` stage draws every flow when its scope is `all`, and only the flows it lists when its scope is a selection. Anything outside that is a `BROKEN_REFERENCE`, and focusing flow steps with no stage at all is an `INVALID_DOCUMENT`.
+
+The field arrived with contract 0.1.1. A CLI older than 0.4.0 does not know it and rejects the whole document as an invented field, so validate with a current one.
+
 ## What the validator will catch
 
 Read `references/graph-document.md` before writing. The four failures that account for nearly everything:
 
 | Code                         | What you did                                                         |
 | ---------------------------- | -------------------------------------------------------------------- |
-| `BROKEN_REFERENCE`           | an edge, a flow step or a view names an id you never declared        |
+| `BROKEN_REFERENCE`           | an edge, a flow step, a view or a walkthrough step names an id you never declared |
 | `INVALID_DOCUMENT`           | an invented field; the schemas are strict, unknown keys are rejected |
 | `DUPLICATE_ID`               | two nodes, edges or views sharing an id                              |
 | `UNSUPPORTED_SCHEMA_VERSION` | `schemaVersion` is not the contract version installed                |
 
-Four rules cannot be expressed in JSON Schema and are checked only by the parser, so structured output alone does not make a document valid: referential integrity, a line range that ends before it starts, a `self` message whose endpoints disagree, and a patch whose two commits are the same. Always validate.
+Six rules cannot be expressed in JSON Schema and are checked only by the parser, so structured output alone does not make a document valid: referential integrity, a line range that ends before it starts, a `self` message whose endpoints disagree, a patch whose two commits are the same, more views than a render manifest could describe, and a walkthrough step focusing flow steps the diagram on its stage does not draw. Always validate.
 
 ## Fixing a map instead of writing one
 
