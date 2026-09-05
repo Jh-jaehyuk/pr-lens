@@ -8,7 +8,8 @@ import { SCHEMA_VERSION } from "../version.js";
  * refactor: broadcast sending moved from one Postmark request per recipient
  * to batched requests of 500, behind a shared library. Every downstream
  * renderer golden is measured against this document, so it exercises all
- * four delta states, a hero edge, and a full data-flow sequence.
+ * four delta states, a hero edge, a full data-flow sequence, and a
+ * walkthrough that stages both a drill-down view and a flow.
  */
 export const postmarkRefactorGraphInput: GraphDocInput = {
   schemaVersion: SCHEMA_VERSION,
@@ -393,6 +394,55 @@ export const postmarkRefactorGraphInput: GraphDocInput = {
       scope: { kind: "selection", flows: ["send-pipeline"] },
     },
   ],
+  walkthrough: {
+    steps: [
+      {
+        id: "blast-radius",
+        heading: "One change, three lanes",
+        body: "Everything the pull request touched, at once.",
+        stage: { kind: "view", view: "overview" },
+        focus: { kind: "all" },
+      },
+      {
+        id: "batches-of-500",
+        heading: "Batches of 500, not one per recipient",
+        body: "The new sender replaces the per-recipient loop.",
+        stage: { kind: "view", view: "overview" },
+        focus: {
+          kind: "selection",
+          nodes: ["send-broadcast-bulk", "build-bulk-payload", "postmark"],
+        },
+      },
+      {
+        id: "suppression-first",
+        heading: "Suppression moves in front of the send",
+        body: "Bad addresses are filtered before a batch is built.",
+        stage: { kind: "view", view: "new-batch-path" },
+        focus: { kind: "selection", nodes: ["get-suppressed-emails", "postmark"] },
+      },
+      {
+        id: "old-path-goes-dark",
+        heading: "The old path goes dark",
+        body: "Two functions retire, and nothing else called them.",
+        stage: { kind: "view", view: "overview" },
+        focus: { kind: "selection", nodes: ["process-broadcast", "send-single-email"] },
+      },
+      {
+        id: "sequence-start-to-finish",
+        heading: "The sequence, start to finish",
+        body: "Seven steps. Four of them are new.",
+        stage: { kind: "flow", flow: "send-pipeline" },
+        focus: { kind: "all" },
+      },
+      {
+        id: "four-batch-calls",
+        heading: "Four batch calls, one run",
+        body: "500 messages a call, and Postmark answers each one.",
+        stage: { kind: "flow", flow: "send-pipeline" },
+        focus: { kind: "selection", messages: ["batch-post", "batch-results"] },
+      },
+    ],
+  },
   layout: {
     direction: "right",
     laneOrder: ["web", "functions", "external"],
