@@ -495,6 +495,132 @@ describe("carrying a walkthrough through a patch", () => {
     expect(patched.walkthrough).toBeUndefined();
   });
 
+  /**
+   * Two flows, each carrying a step called `shared`. Flow step ids are only
+   * unique within their own flow, so this document is valid, and a tour of it
+   * can only be pruned by asking which flow the stage draws.
+   */
+  const sharedStepIds = (): GraphDoc =>
+    parseGraphDoc({
+      ...postmarkRefactorGraphInput,
+      views: [],
+      flows: [
+        {
+          id: "first",
+          title: "First",
+          participants: [{ node: "queue-route" }, { node: "broadcast-queue" }, { node: "send-broadcast-bulk" }],
+          messages: [
+            { id: "shared", from: "queue-route", to: "broadcast-queue", label: "enqueue", delta: "added" },
+            { id: "keep", from: "broadcast-queue", to: "send-broadcast-bulk", label: "trigger", delta: "added" },
+          ],
+        },
+        {
+          id: "second",
+          title: "Second",
+          participants: [{ node: "broadcast-queue" }, { node: "postmark" }],
+          messages: [
+            { id: "shared", from: "broadcast-queue", to: "postmark", label: "post", delta: "added" },
+          ],
+        },
+      ],
+      walkthrough: {
+        steps: [
+          {
+            id: "over-first",
+            heading: "Over the first flow",
+            stage: { kind: "flow", flow: "first" },
+            focus: { kind: "selection", messages: ["shared", "keep"] },
+          },
+          {
+            id: "over-second",
+            heading: "Over the second flow",
+            stage: { kind: "flow", flow: "second" },
+          },
+        ],
+      },
+    });
+
+  it("measures a focused flow step against the flow on the stage, not the document", () => {
+    const patched = expectApplied([{ op: "remove_node", id: "queue-route" }], sharedStepIds());
+    const step = patched.walkthrough?.steps.find(({ id }) => id === "over-first");
+
+    if (step?.focus.kind !== "selection") throw new Error("expected a selection focus");
+    expect(step.focus.messages).toEqual(["keep"]);
+    expect(graphIntegrityIssues(patched)).toEqual([]);
+  });
+
+  it("drops a step whose stage stops drawing the flow its focus came from", () => {
+    const graph = parseGraphDoc({
+      ...postmarkRefactorGraphInput,
+      views: [
+        {
+          id: "both",
+          title: "Both flows",
+          lens: "data-flow",
+          scope: { kind: "selection", flows: ["first", "second"] },
+        },
+      ],
+      flows: [
+        {
+          id: "first",
+          title: "First",
+          participants: [{ node: "queue-route" }, { node: "broadcast-queue" }],
+          messages: [
+            { id: "only-in-first", from: "queue-route", to: "broadcast-queue", label: "enqueue", delta: "added" },
+          ],
+        },
+        {
+          id: "second",
+          title: "Second",
+          participants: [{ node: "broadcast-queue" }, { node: "postmark" }],
+          messages: [
+            { id: "only-in-second", from: "broadcast-queue", to: "postmark", label: "post", delta: "added" },
+          ],
+        },
+      ],
+      walkthrough: {
+        steps: [
+          {
+            id: "the-first",
+            heading: "The first flow",
+            stage: { kind: "view", view: "both" },
+            focus: { kind: "selection", messages: ["only-in-first"] },
+          },
+          {
+            id: "the-second",
+            heading: "The second flow",
+            stage: { kind: "view", view: "both" },
+            focus: { kind: "selection", messages: ["only-in-second"] },
+          },
+          { id: "everything", heading: "Everything", stage: { kind: "view", view: "both" } },
+        ],
+      },
+    });
+
+    const patched = expectApplied([{ op: "remove_flow", id: "first" }], graph);
+
+    expect(patched.views.map(({ id }) => id)).toEqual(["both"]);
+    expect(stepIds(patched)).toEqual(["the-second", "everything"]);
+  });
+
+  it("prunes the steps an update takes out of a flow it rewrites", () => {
+    const flow = postmarkRefactorGraph.flows[0]!;
+    const patched = expectApplied([
+      {
+        op: "update_flow",
+        id: "send-pipeline",
+        patch: {
+          messages: flow.messages.filter(
+            ({ id }) => id !== "batch-post" && id !== "batch-results",
+          ),
+        },
+      },
+    ]);
+
+    expect(stepIds(patched)).not.toContain("four-batch-calls");
+    expect(graphIntegrityIssues(patched)).toEqual([]);
+  });
+
   it("hands back a document whose walkthrough still points at what is left", () => {
     const patched = expectApplied([{ op: "remove_node", id: "postmark" }]);
 

@@ -311,6 +311,56 @@ describe("layout hints survive a correction", () => {
     expect(() => parseGraphDoc(JSON.parse(JSON.stringify(corrected)))).not.toThrow();
   });
 
+  /**
+   * Two flows, each carrying a step called `shared`, which is valid: a flow
+   * step is only ever identified within its own flow.
+   */
+  const sharedStepIds = (): GraphDoc =>
+    parseGraphDoc({
+      ...JSON.parse(JSON.stringify(postmarkRefactorGraph)),
+      views: [],
+      layout: undefined,
+      flows: [
+        {
+          id: "first",
+          title: "First",
+          participants: [{ node: "queue-route" }, { node: "broadcast-queue" }, { node: "send-broadcast-bulk" }],
+          messages: [
+            { id: "shared", from: "queue-route", to: "broadcast-queue", label: "enqueue", delta: "added" },
+            { id: "keep", from: "broadcast-queue", to: "send-broadcast-bulk", label: "trigger", delta: "added" },
+          ],
+        },
+        {
+          id: "second",
+          title: "Second",
+          participants: [{ node: "broadcast-queue" }, { node: "postmark" }],
+          messages: [
+            { id: "shared", from: "broadcast-queue", to: "postmark", label: "post", delta: "added" },
+          ],
+        },
+      ],
+      walkthrough: {
+        steps: [
+          {
+            id: "over-first",
+            heading: "Over the first flow",
+            stage: { kind: "flow", flow: "first" },
+            focus: { kind: "selection", messages: ["shared", "keep"] },
+          },
+          { id: "over-second", heading: "Over the second flow", stage: { kind: "flow", flow: "second" } },
+        ],
+      },
+    });
+
+  it("leave a walkthrough pointing only at flow steps the stage still draws", () => {
+    const corrected = applyCorrections(sharedStepIds(), corrections({ exclude: ["id:queue-route"] }));
+    const step = corrected.walkthrough?.steps.find(({ id }) => id === "over-first");
+
+    if (step?.focus.kind !== "selection") throw new Error("expected a selection focus");
+    expect(step.focus.messages).toEqual(["keep"]);
+    expect(() => parseGraphDoc(JSON.parse(JSON.stringify(corrected)))).not.toThrow();
+  });
+
   it("keep the entries that still name something", () => {
     const corrected = applyCorrections(postmarkRefactorGraph, corrections({}));
     expect(corrected.layout?.rank).toEqual(postmarkRefactorGraph.layout?.rank);

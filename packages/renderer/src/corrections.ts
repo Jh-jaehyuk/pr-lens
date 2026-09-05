@@ -49,9 +49,6 @@ const narrowScope = (
   }
 };
 
-const viewIds = (views: readonly View[]): string[] =>
-  views.flatMap((view) => [view.id, ...viewIds(view.children)]);
-
 const narrowViews = (
   views: readonly View[],
   survives: Parameters<typeof narrowScope>[1],
@@ -134,15 +131,6 @@ export const applyCorrections = (doc: GraphDoc, corrections: MapCorrections): Gr
 
   const views = narrowViews(doc.views, survives);
 
-  /**
-   * A walkthrough step can name a view, so the tour is narrowed against the
-   * views that came through rather than the ones the document started with.
-   */
-  const narrowed = new Set(viewIds(views));
-  const messages = new Set(
-    flows.flatMap((flow) => flow.messages.map((message) => message.id)),
-  );
-
   return {
     ...doc,
     lanes,
@@ -150,11 +138,11 @@ export const applyCorrections = (doc: GraphDoc, corrections: MapCorrections): Gr
     edges,
     flows,
     views,
-    walkthrough: pruneWalkthrough(doc.walkthrough, {
-      ...survives,
-      message: (id: string) => messages.has(id),
-      view: (id: string) => narrowed.has(id),
-    }),
+    /**
+     * Narrowed against the document that came through, views included: a step
+     * can play over a view the overlay has just emptied out.
+     */
+    walkthrough: pruneWalkthrough(doc.walkthrough, { lanes, nodes, edges, flows, views }),
     layout: narrowLayout(doc.layout, survives),
   };
 };

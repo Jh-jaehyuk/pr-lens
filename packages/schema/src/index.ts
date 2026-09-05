@@ -83,6 +83,8 @@ export {
   safeParseRenderManifest,
 } from "./validate.js";
 
-export { applyPatch, applyPatchDoc, pruneWalkthrough, type Survives } from "./apply.js";
+export { applyPatch, applyPatchDoc } from "./apply.js";
+
+export { pruneWalkthrough, type WalkthroughSubject } from "./walkthrough.js";
 
 export { assertNever } from "./utils.js";

@@ -1,9 +1,10 @@
 import { formatIssues, PrLensSchemaError, type Parsed, type SchemaIssue } from "./errors.js";
 import { safeParseGraphDoc } from "./validate.js";
-import type { Flow, GraphDoc, GraphEdge, Lane, StepStage, View, Walkthrough } from "./graph.js";
+import type { Flow, GraphDoc, GraphEdge, Lane, View } from "./graph.js";
 import { graphSnapshotIssues } from "./integrity.js";
 import { targetDescribesATransition, type PatchDoc, type PatchOp } from "./patch.js";
 import { assertNever } from "./utils.js";
+import { pruneWalkthrough } from "./walkthrough.js";
 
 type Collections = {
   lanes: Lane[];
@@ -70,94 +71,6 @@ const pruneViews = (views: readonly View[], removed: RemovedIds): View[] =>
         return assertNever(view.scope, "Unhandled view scope");
     }
   });
-
-/**
- * What a walkthrough may still point at. Steps name elements from every
- * collection and the drill-down tree besides, so this is read off the
- * document once the other prunes have run rather than assembled from the ids
- * a single operation removed.
- */
-export type Survives = {
-  lane: (id: string) => boolean;
-  node: (id: string) => boolean;
-  edge: (id: string) => boolean;
-  flow: (id: string) => boolean;
-  message: (id: string) => boolean;
-  view: (id: string) => boolean;
-};
-
-/**
- * A step whose diagram is gone has nowhere to play, and a focus that loses
- * its last element has nothing to point at; either way the step goes rather
- * than being left to widen into a step about everything. A tour of one step
- * is a caption, so a walkthrough cut below two steps goes with them.
- */
-export const pruneWalkthrough = (
-  walkthrough: Walkthrough | undefined,
-  survives: Survives,
-): Walkthrough | undefined => {
-  if (walkthrough === undefined) return undefined;
-
-  const steps = walkthrough.steps.flatMap((step) => {
-    if (step.stage !== undefined && !stageSurvives(step.stage, survives)) return [];
-
-    switch (step.focus.kind) {
-      case "all":
-        return [step];
-      case "selection": {
-        const focus = {
-          kind: "selection",
-          lanes: step.focus.lanes.filter((id) => survives.lane(id)),
-          nodes: step.focus.nodes.filter((id) => survives.node(id)),
-          edges: step.focus.edges.filter((id) => survives.edge(id)),
-          messages: step.focus.messages.filter((id) => survives.message(id)),
-        } as const;
-
-        const focused =
-          focus.lanes.length + focus.nodes.length + focus.edges.length + focus.messages.length;
-        return focused === 0 ? [] : [{ ...step, focus }];
-      }
-      default:
-        return assertNever(step.focus, "Unhandled step focus");
-    }
-  });
-
-  return steps.length < 2 ? undefined : { ...walkthrough, steps };
-};
-
-const stageSurvives = (stage: StepStage, survives: Survives): boolean => {
-  switch (stage.kind) {
-    case "view":
-      return survives.view(stage.view);
-    case "flow":
-      return survives.flow(stage.flow);
-    default:
-      return assertNever(stage, "Unhandled step stage");
-  }
-};
-
-const viewIds = (views: readonly View[]): string[] =>
-  views.flatMap((view) => [view.id, ...viewIds(view.children)]);
-
-const survivorsOf = (working: Collections, tree: readonly View[]): Survives => {
-  const lanes = new Set(working.lanes.map((lane) => lane.id));
-  const nodes = new Set(working.nodes.map((node) => node.id));
-  const edges = new Set(working.edges.map((edge) => edge.id));
-  const flows = new Set(working.flows.map((flow) => flow.id));
-  const messages = new Set(
-    working.flows.flatMap((flow) => flow.messages.map((message) => message.id)),
-  );
-  const views = new Set(viewIds(tree));
-
-  return {
-    lane: (id) => lanes.has(id),
-    node: (id) => nodes.has(id),
-    edge: (id) => edges.has(id),
-    flow: (id) => flows.has(id),
-    message: (id) => messages.has(id),
-    view: (id) => views.has(id),
-  };
-};
 
 /** Layout hints name elements, so they strand the same way view scopes do. */
 const pruneLayout = (layout: GraphDoc["layout"], removed: RemovedIds): GraphDoc["layout"] => {
@@ -232,12 +145,10 @@ export const applyPatch = (graph: GraphDoc, ops: readonly PatchOp[]): Parsed<Gra
   };
   let views = graph.views;
   let layout = graph.layout;
-  let walkthrough = graph.walkthrough;
 
   const prune = (removed: RemovedIds): void => {
     views = pruneViews(views, removed);
     layout = pruneLayout(layout, removed);
-    walkthrough = pruneWalkthrough(walkthrough, survivorsOf(working, views));
   };
 
   for (const [index, op] of ops.entries()) {
@@ -387,6 +298,20 @@ export const applyPatch = (graph: GraphDoc, ops: readonly PatchOp[]): Parsed<Gra
         return assertNever(op, "Unhandled patch operation");
     }
   }
+
+  /**
+   * The tour is pruned once, against the document the operations produced,
+   * rather than alongside each removal. A step names a diagram as well as
+   * elements, and an operation that rewrites a flow's steps takes members
+   * away without removing anything the other prunes would notice.
+   */
+  const walkthrough = pruneWalkthrough(graph.walkthrough, {
+    lanes: working.lanes,
+    nodes: working.nodes,
+    edges: working.edges,
+    flows: working.flows,
+    views,
+  });
 
   return safeParseGraphDoc({
     ...graph,
