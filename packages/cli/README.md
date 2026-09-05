@@ -75,6 +75,8 @@ Both matter to what comes next. The manifest is where `comment` gets its file na
 
 The SVGs carry no script and no external reference, and the same document renders to the same bytes every time. `--theme light` or `--theme dark` draws one half of the pair.
 
+The renderer also hands back an atlas of where every lane, node, edge and flow step landed in each picture. `render` and `export` write no file for it. The SVGs and the manifest are what a comment and a canvas need, and a file of coordinates beside them would be a second copy of the geometry to keep in step. A program that wants the boxes calls `@coldtea/pr-lens-renderer` directly.
+
 ### `comment`
 
 ```bash
@@ -98,7 +100,7 @@ Parses graph documents, patch documents, render manifests and configs, JSON or Y
 pr-lens export .pr-lens/graph.json -o .github/pr-lens.map.json
 ```
 
-Turns a pull-request document into the map of the system once that pull request has merged: elements the change deletes are dropped, along with the edges and flow steps that hung from them; the rest stops being annotated, and the result is stamped with the single commit it reflects.
+Turns a pull-request document into the map of the system once that pull request has merged: elements the change deletes are dropped, along with the edges and flow steps that hung from them; the rest stops being annotated, the walkthrough goes with the change it narrated, and the result is stamped with the single commit it reflects.
 
 The map is a snapshot, not a source of truth. Nothing reads it back into the pipeline: a committed map that overrode inference would be hand-maintained rot with merge conflicts attached. Commit it so a repository has something to read, to diff, and to hand an agent.
 
@@ -119,6 +121,8 @@ Puts the document on prlens.dev as a canvas: a page anyone with the link can rea
 ```
 
 The view link is the one to share. The edit link is the same page with the write token in the fragment, and anyone holding it can push over your canvas, so it stays with you. The embed is the hero diagram as an SVG, for a README or a wiki.
+
+A canvas plays the document's walkthrough when it carries one. The app checks that every step resolves against the diagrams it drew, and a push it refuses arrives here as `CANVAS_REJECTED` carrying the app's own words rather than a generic failure.
 
 `pull` fetches the document back, by the view link or the bare id, into `.pr-lens/graph.json` unless `-o` says otherwise, and records the revision. Pull the edit link, the one ending in `#w=…`, and its token is recorded too: that is how a fresh checkout, or one that lost `.pr-lens/canvas.json`, gets the canvas back. A push carries the revision it last saw, and one that has been overtaken is refused rather than applied: pull, then push again.
 
