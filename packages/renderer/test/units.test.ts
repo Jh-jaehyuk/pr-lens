@@ -361,6 +361,41 @@ describe("layout hints survive a correction", () => {
     expect(() => parseGraphDoc(JSON.parse(JSON.stringify(corrected)))).not.toThrow();
   });
 
+  const stepIds = (doc: GraphDoc): string[] =>
+    (doc.walkthrough?.steps ?? []).map((step) => step.id);
+
+  it("take an excluded node out of the step that pointed at it", () => {
+    const corrected = applyCorrections(
+      postmarkRefactorGraph,
+      corrections({ exclude: ["id:build-bulk-payload"] }),
+    );
+    const step = corrected.walkthrough?.steps.find(({ id }) => id === "batches-of-500");
+
+    if (step?.focus.kind !== "selection") throw new Error("expected a selection focus");
+    expect(step.focus.nodes).toEqual(["send-broadcast-bulk", "postmark"]);
+  });
+
+  it("drop a step whose selection lost its last member", () => {
+    const corrected = applyCorrections(
+      postmarkRefactorGraph,
+      corrections({ exclude: ["id:get-suppressed-emails", "id:postmark"] }),
+    );
+    expect(stepIds(corrected)).not.toContain("suppression-first");
+    expect(stepIds(postmarkRefactorGraph)).toContain("suppression-first");
+  });
+
+  it("drop a step staged on a flow the exclusion emptied", () => {
+    const corrected = applyCorrections(
+      postmarkRefactorGraph,
+      corrections({
+        exclude: ["id:queue-route", "id:broadcast-queue", "id:send-broadcast-bulk"],
+      }),
+    );
+    expect(corrected.flows).toEqual([]);
+    expect(stepIds(corrected)).not.toContain("sequence-start-to-finish");
+    expect(stepIds(corrected)).not.toContain("four-batch-calls");
+  });
+
   it("keep the entries that still name something", () => {
     const corrected = applyCorrections(postmarkRefactorGraph, corrections({}));
     expect(corrected.layout?.rank).toEqual(postmarkRefactorGraph.layout?.rank);
