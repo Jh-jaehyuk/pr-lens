@@ -1,5 +1,5 @@
 import type { SchemaIssue } from "./errors.js";
-import type { GraphDoc, View } from "./graph.js";
+import type { Flow, GraphDoc, StepStage, View } from "./graph.js";
 import { FullSha, MAX_VIEWS, THEMES, type Delta } from "./primitives.js";
 import { assertNever } from "./utils.js";
 
@@ -18,6 +18,60 @@ const flattenViews = (views: readonly View[], prefix: string): { view: View; pat
     const path = `${prefix}[${index}]`;
     return [{ view, path }, ...flattenViews(view.children, `${path}.children`)];
   });
+
+/**
+ * The steps a stage puts on screen, which is the whole answer to whether a
+ * focus may name one: a message the reader will never see is a reference to
+ * nothing, however real the id.
+ *
+ * `unknown-stage` is its own answer rather than an empty set, so a stage that
+ * names a view or flow the document lacks is reported once, as the broken
+ * reference it is, instead of again for every message underneath it.
+ */
+type StagedMessages =
+  | { kind: "messages"; ids: ReadonlySet<string> }
+  | { kind: "no-stage" }
+  | { kind: "unknown-stage" };
+
+const messageIdsOf = (flows: readonly Flow[]): Set<string> =>
+  new Set(flows.flatMap((flow) => flow.messages.map((message) => message.id)));
+
+const stagedMessages = (
+  stage: StepStage | undefined,
+  flows: readonly Flow[],
+  viewsById: ReadonlyMap<string, View>,
+): StagedMessages => {
+  if (stage === undefined) return { kind: "no-stage" };
+
+  switch (stage.kind) {
+    case "flow": {
+      const flow = flows.find(({ id }) => id === stage.flow);
+      return flow === undefined
+        ? { kind: "unknown-stage" }
+        : { kind: "messages", ids: messageIdsOf([flow]) };
+    }
+    case "view": {
+      const view = viewsById.get(stage.view);
+      if (view === undefined) return { kind: "unknown-stage" };
+
+      switch (view.scope.kind) {
+        case "all":
+          return { kind: "messages", ids: messageIdsOf(flows) };
+        case "selection": {
+          const scoped = view.scope.flows;
+          return {
+            kind: "messages",
+            ids: messageIdsOf(flows.filter((flow) => scoped.includes(flow.id))),
+          };
+        }
+        default:
+          return assertNever(view.scope, "Unhandled view scope");
+      }
+    }
+    default:
+      return assertNever(stage, "Unhandled step stage");
+  }
+};
 
 /**
  * Structural validation says a field holds an id; these checks say the id
@@ -135,6 +189,82 @@ export const graphIntegrityIssues = (doc: GraphDoc): SchemaIssue[] => {
     }
   }
 
+  if (doc.walkthrough) {
+    const viewsById = new Map(views.map(({ view }) => [view.id, view]));
+
+    for (const id of duplicates(doc.walkthrough.steps.map((step) => step.id)))
+      duplicate("walkthrough.steps", `duplicate step id '${id}'`);
+
+    doc.walkthrough.steps.forEach((step, index) => {
+      const at = `walkthrough.steps[${index}]`;
+
+      if (step.stage !== undefined) {
+        switch (step.stage.kind) {
+          case "view":
+            if (!viewsById.has(step.stage.view))
+              broken(`${at}.stage.view`, `step '${step.id}' stages unknown view '${step.stage.view}'`);
+            break;
+          case "flow":
+            if (!flowIds.has(step.stage.flow))
+              broken(`${at}.stage.flow`, `step '${step.id}' stages unknown flow '${step.stage.flow}'`);
+            break;
+          default:
+            assertNever(step.stage, "Unhandled step stage");
+        }
+      }
+
+      switch (step.focus.kind) {
+        case "all":
+          break;
+        case "selection": {
+          const focus = step.focus;
+          const focused: [keyof Omit<typeof focus, "kind" | "messages">, string, ReadonlySet<string>][] = [
+            ["lanes", "lane", laneIds],
+            ["nodes", "node", nodeIds],
+            ["edges", "edge", edgeIds],
+          ];
+          for (const [collection, singular, known] of focused) {
+            focus[collection].forEach((id, memberIndex) => {
+              if (!known.has(id))
+                broken(
+                  `${at}.focus.${collection}[${memberIndex}]`,
+                  `step '${step.id}' focuses unknown ${singular} '${id}'`,
+                );
+            });
+          }
+
+          const staged = stagedMessages(step.stage, doc.flows, viewsById);
+          switch (staged.kind) {
+            case "messages":
+              focus.messages.forEach((id, memberIndex) => {
+                if (!staged.ids.has(id))
+                  broken(
+                    `${at}.focus.messages[${memberIndex}]`,
+                    `step '${step.id}' focuses '${id}', which no flow on its stage carries`,
+                  );
+              });
+              break;
+            case "no-stage":
+              if (focus.messages.length > 0)
+                issues.push({
+                  code: "INVALID_DOCUMENT",
+                  path: `${at}.focus.messages`,
+                  message: `step '${step.id}' focuses flow steps but names no stage to draw them on`,
+                });
+              break;
+            case "unknown-stage":
+              break;
+            default:
+              assertNever(staged, "Unhandled staged messages");
+          }
+          break;
+        }
+        default:
+          assertNever(step.focus, "Unhandled step focus");
+      }
+    });
+  }
+
   if (doc.layout) {
     doc.layout.laneOrder.forEach((id, index) => {
       if (!laneIds.has(id)) broken(`layout.laneOrder[${index}]`, `unknown lane '${id}'`);
@@ -165,6 +295,14 @@ export const graphSnapshotIssues = (doc: GraphDoc): SchemaIssue[] => {
       code: "NOT_A_SNAPSHOT",
       path: "id",
       message: "a stored map needs an id, so a patch can say which map it targets",
+    });
+
+  if (doc.walkthrough !== undefined)
+    issues.push({
+      code: "NOT_A_SNAPSHOT",
+      path: "walkthrough",
+      message:
+        "a stored map carries a walkthrough, but a walkthrough narrates a change and a map describes a system",
     });
 
   for (const side of ["base", "head"] as const) {

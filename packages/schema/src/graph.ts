@@ -1,5 +1,16 @@
 import { z } from "zod";
-import { Delta, FileRef, Id, Label, Lens, SchemaVersionField, Sha, Summary } from "./primitives.js";
+import {
+  Beat,
+  Delta,
+  FileRef,
+  Id,
+  Label,
+  Lens,
+  Line,
+  SchemaVersionField,
+  Sha,
+  Summary,
+} from "./primitives.js";
 
 /**
  * Coarse on purpose: this drives the card icon and shape, never analysis.
@@ -256,6 +267,90 @@ export const View: z.ZodType<View, ViewInput> = z.lazy(() =>
 );
 
 /**
+ * The picture a step plays over: one of the document's drill-down views, or
+ * one of its flows drawn on its own.
+ *
+ * Leaving it out means the picture the reader is already looking at. Which
+ * one that is belongs to the surface showing the document, not to the
+ * contract, so the contract says nothing about it.
+ */
+export const StepStage = z
+  .discriminatedUnion("kind", [
+    z.strictObject({
+      kind: z.literal("view"),
+      view: Id.describe("Id of the drill-down view to draw."),
+    }),
+    z.strictObject({
+      kind: z.literal("flow"),
+      flow: Id.describe("Id of the flow to draw."),
+    }),
+  ])
+  .describe("Which diagram a walkthrough step plays over.");
+export type StepStage = z.infer<typeof StepStage>;
+
+/**
+ * What a step points at inside its stage. The same two states a view scope
+ * has, and for the same reason: a step that loses the last element it named
+ * must never quietly become a step about everything.
+ *
+ * `messages` names steps of a flow, so it only means anything when the stage
+ * draws that flow. That pairing is the parser's to check.
+ */
+export const StepFocus = z
+  .discriminatedUnion("kind", [
+    z.strictObject({ kind: z.literal("all") }),
+    z
+      .strictObject({
+        kind: z.literal("selection"),
+        lanes: z.array(Id).max(64).default([]),
+        nodes: z.array(Id).max(256).default([]),
+        edges: z.array(Id).max(512).default([]),
+        messages: z.array(Id).max(64).default([]).describe("Steps of the flow on the stage."),
+      })
+      .meta({
+        anyOf: [
+          { properties: { lanes: { minItems: 1 } }, required: ["lanes"] },
+          { properties: { nodes: { minItems: 1 } }, required: ["nodes"] },
+          { properties: { edges: { minItems: 1 } }, required: ["edges"] },
+          { properties: { messages: { minItems: 1 } }, required: ["messages"] },
+        ],
+      })
+      .refine(
+        (focus) =>
+          focus.lanes.length + focus.nodes.length + focus.edges.length + focus.messages.length > 0,
+        { message: "a selection must name at least one element" },
+      ),
+  ])
+  .describe("What stays lit while a walkthrough step plays.");
+export type StepFocus = z.infer<typeof StepFocus>;
+
+export const WalkthroughStep = z
+  .strictObject({
+    id: Id,
+    heading: Beat,
+    body: Line.optional(),
+    stage: StepStage.optional(),
+    focus: StepFocus.default({ kind: "all" }),
+  })
+  .describe("One stop on the walkthrough: a heading, and the part of one diagram it is about.");
+export type WalkthroughStep = z.infer<typeof WalkthroughStep>;
+
+/**
+ * An ordered tour of the document's diagrams, authored alongside them.
+ *
+ * Two steps is the floor because one step is a caption, and twelve is the
+ * ceiling because a reader scrolling a rail loses the thread long before
+ * that. A document that carries one has already decided what a reader should
+ * see first; a surface playing it only reads.
+ */
+export const Walkthrough = z
+  .strictObject({
+    steps: z.array(WalkthroughStep).min(2).max(12).describe("Ordered by array position."),
+  })
+  .describe("An ordered tour of this document's diagrams.");
+export type Walkthrough = z.infer<typeof Walkthrough>;
+
+/**
  * Hints, not instructions: the renderer owns final placement so that layout
  * stays deterministic for a given document. A hint is a floor rather than an
  * answer — it can push a node further down the page, never above something
@@ -324,6 +419,7 @@ export const GraphDoc = z
     flows: z.array(Flow).max(16).default([]),
     stats: Stats.optional(),
     views: z.array(View).max(32).default([]),
+    walkthrough: Walkthrough.optional(),
     layout: LayoutHints.optional(),
   })
   .describe("A PR Lens graph document.");
