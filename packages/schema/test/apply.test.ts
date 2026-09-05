@@ -6,10 +6,11 @@ import {
   minimalGraph,
   postmarkRefactorGraph,
 } from "../src/examples/index.js";
-import type { GraphDoc } from "../src/graph.js";
+import { postmarkRefactorGraphInput } from "../src/examples/postmark-refactor.js";
+import type { GraphDoc, GraphDocInput } from "../src/graph.js";
 import { graphIntegrityIssues, graphSnapshotIssues } from "../src/integrity.js";
 import type { PatchDoc, PatchOp } from "../src/patch.js";
-import { safeParseGraphDoc } from "../src/validate.js";
+import { parseGraphDoc, safeParseGraphDoc } from "../src/validate.js";
 
 const apply = (ops: readonly PatchOp[], graph = postmarkRefactorGraph) => applyPatch(graph, ops);
 
@@ -413,5 +414,106 @@ describe("applying a patch document", () => {
     if (result.ok) return;
     expect(result.error.code).toBe("PATCH_CONFLICT");
     expect(result.error.issues[0]?.message).toBe("stale baseline");
+  });
+});
+
+const withSteps = (steps: NonNullable<GraphDocInput["walkthrough"]>["steps"]): GraphDoc =>
+  parseGraphDoc({ ...postmarkRefactorGraphInput, walkthrough: { steps } });
+
+const stepIds = (graph: GraphDoc): string[] | undefined =>
+  graph.walkthrough?.steps.map((step) => step.id);
+
+describe("carrying a walkthrough through a patch", () => {
+  it("drops the members a step focused and keeps the step", () => {
+    const patched = expectApplied([{ op: "remove_node", id: "postmark" }]);
+    const step = patched.walkthrough?.steps.find(({ id }) => id === "batches-of-500");
+
+    if (step?.focus.kind !== "selection") throw new Error("expected a selection focus");
+    expect(step.focus.nodes).toEqual(["send-broadcast-bulk", "build-bulk-payload"]);
+  });
+
+  it("drops a step whose focus loses its last member", () => {
+    const patched = expectApplied([{ op: "remove_node", id: "postmark" }]);
+
+    expect(stepIds(patched)).toEqual([
+      "blast-radius",
+      "batches-of-500",
+      "suppression-first",
+      "old-path-goes-dark",
+      "sequence-start-to-finish",
+    ]);
+  });
+
+  it("drops the steps staged on a flow that goes", () => {
+    const patched = expectApplied([{ op: "remove_flow", id: "send-pipeline" }]);
+
+    expect(stepIds(patched)).toEqual([
+      "blast-radius",
+      "batches-of-500",
+      "suppression-first",
+      "old-path-goes-dark",
+    ]);
+  });
+
+  it("drops a step staged on a view the prune took with it", () => {
+    const graph = withSteps([
+      { id: "retired", heading: "What was retired", stage: { kind: "view", view: "retired-path" } },
+      { id: "overview", heading: "Blast radius", stage: { kind: "view", view: "overview" } },
+      { id: "pipeline", heading: "The sequence", stage: { kind: "flow", flow: "send-pipeline" } },
+    ]);
+
+    const patched = expectApplied(
+      [
+        { op: "remove_node", id: "process-broadcast" },
+        { op: "remove_node", id: "send-single-email" },
+      ],
+      graph,
+    );
+
+    expect(patched.views[0]?.children.map(({ id }) => id)).not.toContain("retired-path");
+    expect(stepIds(patched)).toEqual(["overview", "pipeline"]);
+  });
+
+  it("keeps a tour cut to two steps", () => {
+    const graph = withSteps([
+      { id: "one", heading: "One", stage: { kind: "view", view: "overview" } },
+      { id: "two", heading: "Two", stage: { kind: "view", view: "overview" } },
+      { id: "three", heading: "Three", stage: { kind: "flow", flow: "send-pipeline" } },
+    ]);
+
+    const patched = expectApplied([{ op: "remove_flow", id: "send-pipeline" }], graph);
+    expect(stepIds(patched)).toEqual(["one", "two"]);
+  });
+
+  it("drops a tour cut below two steps, which is a caption rather than a walk", () => {
+    const graph = withSteps([
+      { id: "one", heading: "One", stage: { kind: "view", view: "overview" } },
+      { id: "two", heading: "Two", stage: { kind: "flow", flow: "send-pipeline" } },
+    ]);
+
+    const patched = expectApplied([{ op: "remove_flow", id: "send-pipeline" }], graph);
+    expect(patched.walkthrough).toBeUndefined();
+  });
+
+  it("hands back a document whose walkthrough still points at what is left", () => {
+    const patched = expectApplied([{ op: "remove_node", id: "postmark" }]);
+
+    expect(graphIntegrityIssues(patched)).toEqual([]);
+    expect(safeParseGraphDoc(patched).ok).toBe(true);
+  });
+
+  it("refuses to store a map that carries a walkthrough", () => {
+    const issues = graphSnapshotIssues({
+      ...broadcastBaselineGraph,
+      walkthrough: {
+        steps: [
+          { id: "one", heading: "One", focus: { kind: "all" } },
+          { id: "two", heading: "Two", focus: { kind: "all" } },
+        ],
+      },
+    });
+
+    expect(issues.map((issue) => issue.code)).toEqual(["NOT_A_SNAPSHOT"]);
+    expect(issues[0]?.message).toContain("a walkthrough narrates a change");
   });
 });

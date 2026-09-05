@@ -119,7 +119,7 @@ Four rules cannot be expressed in JSON Schema and are checked only by the parser
 When someone says the diagram is wrong (a node is misnamed, a folder should not be on it, something sits in the wrong lane), do not edit the generated document. It is regenerated on every run. Write the correction into `.github/pr-lens.yml`, which is an overlay applied over fresh inference every time:
 
 ```yaml
-schemaVersion: 0.1.0
+schemaVersion: 0.1.1
 map:
   rename:
     - match: functions/src/broadcast/sendBroadcastBulk.ts
