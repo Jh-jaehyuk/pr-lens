@@ -9,7 +9,7 @@ import type {
   View,
   ViewScope,
 } from "@coldtea/pr-lens-schema";
-import { assertNever } from "@coldtea/pr-lens-schema";
+import { assertNever, pruneWalkthrough } from "@coldtea/pr-lens-schema";
 import { PrLensRenderError } from "./errors.js";
 import { matchesGlob } from "./glob.js";
 
@@ -48,6 +48,9 @@ const narrowScope = (
       return assertNever(scope, "Unhandled view scope");
   }
 };
+
+const viewIds = (views: readonly View[]): string[] =>
+  views.flatMap((view) => [view.id, ...viewIds(view.children)]);
 
 const narrowViews = (
   views: readonly View[],
@@ -129,13 +132,29 @@ export const applyCorrections = (doc: GraphDoc, corrections: MapCorrections): Gr
     flow: (id: string) => flows.some((flow) => flow.id === id),
   };
 
+  const views = narrowViews(doc.views, survives);
+
+  /**
+   * A walkthrough step can name a view, so the tour is narrowed against the
+   * views that came through rather than the ones the document started with.
+   */
+  const narrowed = new Set(viewIds(views));
+  const messages = new Set(
+    flows.flatMap((flow) => flow.messages.map((message) => message.id)),
+  );
+
   return {
     ...doc,
     lanes,
     nodes,
     edges,
     flows,
-    views: narrowViews(doc.views, survives),
+    views,
+    walkthrough: pruneWalkthrough(doc.walkthrough, {
+      ...survives,
+      message: (id: string) => messages.has(id),
+      view: (id: string) => narrowed.has(id),
+    }),
     layout: narrowLayout(doc.layout, survives),
   };
 };

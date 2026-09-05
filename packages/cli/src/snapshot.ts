@@ -55,8 +55,9 @@ const deletionOps = (graph: GraphDoc): PatchOp[] => {
  * The map a repository commits: the merged state of the system, identified,
  * stamped with the one commit it reflects, and carrying no annotations.
  *
- * Change statistics are dropped rather than carried over. A line count
- * describes a diff, and this document no longer describes one.
+ * Change statistics and the walkthrough are dropped rather than carried
+ * over. A line count describes a diff and a walkthrough narrates one, and
+ * this document no longer describes one.
  */
 export const toStoredMap = (graph: GraphDoc, options: StoredMapOptions): Parsed<GraphDoc> => {
   const applied = applyPatch(graph, deletionOps(graph));
@@ -71,6 +72,7 @@ export const toStoredMap = (graph: GraphDoc, options: StoredMapOptions): Parsed<
     generatedAt: options.generatedAt,
     provenance: { ...merged.provenance, base: head, head },
     stats: undefined,
+    walkthrough: undefined,
     lanes: merged.lanes.map(({ delta: _delta, ...lane }) => lane),
     nodes: merged.nodes.map((node) => ({ ...node, delta: "unchanged" as const })),
     edges: merged.edges.map((edge) => ({ ...edge, delta: "unchanged" as const })),
