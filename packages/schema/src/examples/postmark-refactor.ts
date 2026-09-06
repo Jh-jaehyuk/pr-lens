@@ -8,7 +8,8 @@ import { SCHEMA_VERSION } from "../version.js";
  * refactor: broadcast sending moved from one Postmark request per recipient
  * to batched requests of 500, behind a shared library. Every downstream
  * renderer golden is measured against this document, so it exercises all
- * four delta states, a hero edge, and a full data-flow sequence.
+ * four delta states, a hero edge, a full data-flow sequence, and a
+ * walkthrough that stages both a drill-down view and a flow.
  */
 export const postmarkRefactorGraphInput: GraphDocInput = {
   schemaVersion: SCHEMA_VERSION,
@@ -393,6 +394,55 @@ export const postmarkRefactorGraphInput: GraphDocInput = {
       scope: { kind: "selection", flows: ["send-pipeline"] },
     },
   ],
+  walkthrough: {
+    steps: [
+      {
+        id: "batches-of-500",
+        heading: "sendBroadcastBulk and buildBulkPayload added",
+        body: "Nothing loops over recipients any more. The sender works on a whole batch at a time.",
+        stage: { kind: "view", view: "overview" },
+        focus: {
+          kind: "selection",
+          nodes: ["send-broadcast-bulk", "build-bulk-payload", "postmark"],
+        },
+      },
+      {
+        id: "suppression-first",
+        heading: "getSuppressedEmails added before the send",
+        body: "It pulls the blocked addresses once, before any batch is built.",
+        stage: { kind: "view", view: "new-batch-path" },
+        focus: { kind: "selection", nodes: ["get-suppressed-emails", "postmark"] },
+      },
+      {
+        id: "old-path-goes-dark",
+        heading: "processBroadcast and sendSingleEmail removed",
+        body: "sendBroadcastBulk does their job for whole batches.",
+        stage: { kind: "view", view: "overview" },
+        focus: { kind: "selection", nodes: ["process-broadcast", "send-single-email"] },
+      },
+      {
+        id: "sequence-start-to-finish",
+        heading: "The send sequence gained 6 new steps",
+        body: "The queue write is the only step that was there before, and it now stamps the batch size.",
+        stage: { kind: "flow", flow: "send-pipeline" },
+        focus: { kind: "all" },
+      },
+      {
+        id: "four-batch-calls",
+        heading: "Postmark now gets 500 emails per call",
+        body: "One call per batch, and Postmark answers with a result for each message.",
+        stage: { kind: "flow", flow: "send-pipeline" },
+        focus: { kind: "selection", messages: ["batch-post", "batch-results"] },
+      },
+      {
+        id: "blast-radius",
+        heading: "4 parts added, 2 removed, across 3 lanes",
+        body: "A 2,000-person broadcast used to make 2,000 calls to Postmark. It now makes 4.",
+        stage: { kind: "view", view: "overview" },
+        focus: { kind: "all" },
+      },
+    ],
+  },
   layout: {
     direction: "right",
     laneOrder: ["web", "functions", "external"],

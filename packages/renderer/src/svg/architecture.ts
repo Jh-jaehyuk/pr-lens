@@ -16,6 +16,7 @@ import {
   LANE_RADIUS,
   SUBTITLE_SIZE,
 } from "../design.js";
+import { atlasBoxes, emptyAtlas, type RenderAtlas } from "../atlas.js";
 import { canvasFor, union } from "../bounds.js";
 import { DIAGRAM_MARGIN } from "../design.js";
 import { coord, type Box } from "../geometry.js";
@@ -228,7 +229,12 @@ export const paintLabelPill = (text: string, box: Box, tone: Tone): string =>
       ),
   );
 
-export type ArchitecturePainting = { width: number; height: number; body: string };
+export type ArchitecturePainting = {
+  width: number;
+  height: number;
+  body: string;
+  atlas: RenderAtlas;
+};
 
 export const paintArchitecture = (
   graph: ScopedGraph,
@@ -290,5 +296,21 @@ export const paintArchitecture = (
     width: canvas.width,
     height: canvas.height,
     body: shifted(canvas, painted),
+    atlas: {
+      ...emptyAtlas(),
+      lanes: atlasBoxes(
+        layout.lanes.map(({ lane, box }) => ({ id: lane.id, box })),
+        canvas,
+      ),
+      /** The card, not the badge strip above it: a badge is context the veil may dim. */
+      nodes: atlasBoxes(
+        layout.nodes.map(({ node, box }) => ({ id: node.id, box })),
+        canvas,
+      ),
+      edges: atlasBoxes(
+        routed.map(({ edge, curve }) => ({ id: edge.id, box: curveBounds(curve) })),
+        canvas,
+      ),
+    },
   };
 };

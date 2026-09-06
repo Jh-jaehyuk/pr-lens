@@ -191,6 +191,7 @@ describe("nothing is drawn outside the canvas", () => {
     const doc = parseGraphDoc({
       ...JSON.parse(JSON.stringify(postmarkRefactorGraph)),
       views: [],
+      walkthrough: undefined,
       flows: [
         {
           id: "loop",
@@ -232,6 +233,7 @@ describe("a long flow animates one step at a time, in order", () => {
   const doc = parseGraphDoc({
     ...JSON.parse(JSON.stringify(postmarkRefactorGraph)),
     views: [],
+    walkthrough: undefined,
     flows: [
       {
         id: "long",

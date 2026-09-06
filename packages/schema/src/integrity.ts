@@ -2,6 +2,7 @@ import type { SchemaIssue } from "./errors.js";
 import type { GraphDoc, View } from "./graph.js";
 import { FullSha, MAX_VIEWS, THEMES, type Delta } from "./primitives.js";
 import { assertNever } from "./utils.js";
+import { indexViews, stagedMessages } from "./walkthrough.js";
 
 const duplicates = (ids: readonly string[]): string[] => {
   const seen = new Set<string>();
@@ -135,6 +136,82 @@ export const graphIntegrityIssues = (doc: GraphDoc): SchemaIssue[] => {
     }
   }
 
+  if (doc.walkthrough) {
+    const viewsById = indexViews(doc.views);
+
+    for (const id of duplicates(doc.walkthrough.steps.map((step) => step.id)))
+      duplicate("walkthrough.steps", `duplicate step id '${id}'`);
+
+    doc.walkthrough.steps.forEach((step, index) => {
+      const at = `walkthrough.steps[${index}]`;
+
+      if (step.stage !== undefined) {
+        switch (step.stage.kind) {
+          case "view":
+            if (!viewsById.has(step.stage.view))
+              broken(`${at}.stage.view`, `step '${step.id}' stages unknown view '${step.stage.view}'`);
+            break;
+          case "flow":
+            if (!flowIds.has(step.stage.flow))
+              broken(`${at}.stage.flow`, `step '${step.id}' stages unknown flow '${step.stage.flow}'`);
+            break;
+          default:
+            assertNever(step.stage, "Unhandled step stage");
+        }
+      }
+
+      switch (step.focus.kind) {
+        case "all":
+          break;
+        case "selection": {
+          const focus = step.focus;
+          const focused: [keyof Omit<typeof focus, "kind" | "messages">, string, ReadonlySet<string>][] = [
+            ["lanes", "lane", laneIds],
+            ["nodes", "node", nodeIds],
+            ["edges", "edge", edgeIds],
+          ];
+          for (const [collection, singular, known] of focused) {
+            focus[collection].forEach((id, memberIndex) => {
+              if (!known.has(id))
+                broken(
+                  `${at}.focus.${collection}[${memberIndex}]`,
+                  `step '${step.id}' focuses unknown ${singular} '${id}'`,
+                );
+            });
+          }
+
+          const onStage = stagedMessages(step.stage, doc.flows, viewsById);
+          switch (onStage.kind) {
+            case "messages":
+              focus.messages.forEach((id, memberIndex) => {
+                if (!onStage.ids.has(id))
+                  broken(
+                    `${at}.focus.messages[${memberIndex}]`,
+                    `step '${step.id}' focuses '${id}', which no flow on its stage carries`,
+                  );
+              });
+              break;
+            case "no-stage":
+              if (focus.messages.length > 0)
+                issues.push({
+                  code: "INVALID_DOCUMENT",
+                  path: `${at}.focus.messages`,
+                  message: `step '${step.id}' focuses flow steps but names no stage to draw them on`,
+                });
+              break;
+            case "unknown-stage":
+              break;
+            default:
+              assertNever(onStage, "Unhandled staged messages");
+          }
+          break;
+        }
+        default:
+          assertNever(step.focus, "Unhandled step focus");
+      }
+    });
+  }
+
   if (doc.layout) {
     doc.layout.laneOrder.forEach((id, index) => {
       if (!laneIds.has(id)) broken(`layout.laneOrder[${index}]`, `unknown lane '${id}'`);
@@ -165,6 +242,14 @@ export const graphSnapshotIssues = (doc: GraphDoc): SchemaIssue[] => {
       code: "NOT_A_SNAPSHOT",
       path: "id",
       message: "a stored map needs an id, so a patch can say which map it targets",
+    });
+
+  if (doc.walkthrough !== undefined)
+    issues.push({
+      code: "NOT_A_SNAPSHOT",
+      path: "walkthrough",
+      message:
+        "a stored map carries a walkthrough, but a walkthrough narrates a change and a map describes a system",
     });
 
   for (const side of ["base", "head"] as const) {

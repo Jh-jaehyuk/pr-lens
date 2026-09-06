@@ -4,6 +4,7 @@ import type { Flow, GraphDoc, GraphEdge, Lane, View } from "./graph.js";
 import { graphSnapshotIssues } from "./integrity.js";
 import { targetDescribesATransition, type PatchDoc, type PatchOp } from "./patch.js";
 import { assertNever } from "./utils.js";
+import { pruneWalkthrough } from "./walkthrough.js";
 
 type Collections = {
   lanes: Lane[];
@@ -298,6 +299,20 @@ export const applyPatch = (graph: GraphDoc, ops: readonly PatchOp[]): Parsed<Gra
     }
   }
 
+  /**
+   * The tour is pruned once, against the document the operations produced,
+   * rather than alongside each removal. A step names a diagram as well as
+   * elements, and an operation that rewrites a flow's steps takes members
+   * away without removing anything the other prunes would notice.
+   */
+  const walkthrough = pruneWalkthrough(graph.walkthrough, {
+    lanes: working.lanes,
+    nodes: working.nodes,
+    edges: working.edges,
+    flows: working.flows,
+    views,
+  });
+
   return safeParseGraphDoc({
     ...graph,
     lanes: working.lanes,
@@ -306,6 +321,7 @@ export const applyPatch = (graph: GraphDoc, ops: readonly PatchOp[]): Parsed<Gra
     flows: working.flows,
     stats: working.stats,
     views,
+    walkthrough,
     layout,
   });
 };

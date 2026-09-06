@@ -38,6 +38,27 @@ export const Summary = z
   .max(2000)
   .describe("One or two sentences of plain prose. No markdown headings.");
 
+/**
+ * A walkthrough step's heading. The cap is part of the contract rather than
+ * advice: the rail shows one line per step, so a heading long enough to wrap
+ * turns the tour into a wall of text, and no producer can pad its way past it.
+ */
+export const Beat = z
+  .string()
+  .min(1)
+  .max(48)
+  .describe("A step heading. Short enough to read at a glance.");
+
+/**
+ * The one line of body under a step's heading. Required: a heading with
+ * nothing under it reads as a step someone started and never finished.
+ */
+export const Line = z
+  .string()
+  .min(1)
+  .max(140)
+  .describe("A single line under a step heading.");
+
 export const Sha = z
   .string()
   .regex(/^[0-9a-f]{7,40}$/, "must be a lowercase hex git object name")

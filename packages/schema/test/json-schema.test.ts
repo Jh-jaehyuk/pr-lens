@@ -54,6 +54,7 @@ const divergences = [
   "the agreement between a self message's endpoints",
   "a patch whose two commits are the same",
   "more views than a render manifest could describe",
+  "a step focusing flow steps the diagram on its stage does not draw",
 ] as const;
 
 const withoutKey = (document: object, key: string): object =>
@@ -68,6 +69,26 @@ const nestedViews = (count: number): ViewInput[] => {
     ];
   return children;
 };
+
+const twoSteps = [
+  {
+    id: "first",
+    heading: "sendBroadcastBulk and buildBulkPayload added",
+    body: "Nothing loops over recipients any more. The sender works on a whole batch at a time.",
+    stage: { kind: "view", view: "overview" },
+  },
+  {
+    id: "second",
+    heading: "The send sequence gained 6 new steps",
+    body: "The queue write is the only step that was there before, and it now stamps the batch size.",
+    stage: { kind: "flow", flow: "send-pipeline" },
+  },
+];
+
+const withWalkthrough = (steps: unknown[]) => ({
+  ...postmarkRefactorGraphInput,
+  walkthrough: { steps },
+});
 
 const withFileRef = (file: { path: string; startLine?: number; endLine?: number }) => ({
   ...minimalGraphInput,
@@ -273,6 +294,59 @@ const parityCases: ParityCase[] = [
     schema: "graph-doc.schema.json",
     parse: safeParseGraphDoc,
     document: { ...minimalGraphInput, views: nestedViews(MAX_VIEWS + 1) },
+    accepted: false,
+    acceptedByJsonSchema: true,
+  },
+  {
+    name: "a walkthrough of a single step",
+    schema: "graph-doc.schema.json",
+    parse: safeParseGraphDoc,
+    document: withWalkthrough([twoSteps[0]]),
+    accepted: false,
+  },
+  {
+    name: "a step with a heading and nothing under it",
+    schema: "graph-doc.schema.json",
+    parse: safeParseGraphDoc,
+    document: withWalkthrough([withoutKey(twoSteps[0]!, "body"), twoSteps[1]]),
+    accepted: false,
+  },
+  {
+    name: "a step heading longer than the rail can hold",
+    schema: "graph-doc.schema.json",
+    parse: safeParseGraphDoc,
+    document: withWalkthrough([{ ...twoSteps[0], heading: "a".repeat(49) }, twoSteps[1]]),
+    accepted: false,
+  },
+  {
+    name: "a step body longer than the line beneath the heading",
+    schema: "graph-doc.schema.json",
+    parse: safeParseGraphDoc,
+    document: withWalkthrough([{ ...twoSteps[0], body: "a".repeat(141) }, twoSteps[1]]),
+    accepted: false,
+  },
+  {
+    name: "a step focusing nothing at all",
+    schema: "graph-doc.schema.json",
+    parse: safeParseGraphDoc,
+    document: withWalkthrough([
+      { ...twoSteps[0], focus: { kind: "selection" } },
+      twoSteps[1],
+    ]),
+    accepted: false,
+  },
+  {
+    name: `${divergences[5]}, which only the parser can catch`,
+    schema: "graph-doc.schema.json",
+    parse: safeParseGraphDoc,
+    document: withWalkthrough([
+      {
+        ...twoSteps[0],
+        stage: { kind: "view", view: "retired-path" },
+        focus: { kind: "selection", messages: ["batch-post"] },
+      },
+      twoSteps[1],
+    ]),
     accepted: false,
     acceptedByJsonSchema: true,
   },

@@ -107,6 +107,39 @@ test("a command's --help prints that command's usage", async () => {
 test("a valid document validates, and says what it holds", async () => {
   expect(await invoke("validate", GOLDEN)).toBe(0);
   expect(out.join("\n")).toContain("10 nodes");
+  expect(out.join("\n")).toContain("6 walkthrough steps");
+});
+
+/**
+ * A flow step's id is unique inside its own flow, so a focus on one means
+ * nothing until the stage says which flow is drawn. Nobody can see that in
+ * the document by eye, which is the whole reason validate runs before a push.
+ */
+test("a walkthrough step focusing a flow step its stage never draws is caught", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pr-lens-cli-"));
+  const path = join(directory, "tour.json");
+  const document = JSON.parse(await readFile(GOLDEN, "utf8"));
+  const step = document.walkthrough.steps.find(
+    ({ id }: { id: string }) => id === "four-batch-calls",
+  );
+  step.focus.messages = [...step.focus.messages, "no-such-step"];
+  await writeFile(path, JSON.stringify(document), "utf8");
+
+  expect(await invoke("validate", path)).toBe(1);
+  const reported = err.join("\n");
+  expect(reported).toContain("[BROKEN_REFERENCE]");
+  expect(reported).toContain("focuses 'no-such-step', which no flow on its stage carries");
+});
+
+test("a walkthrough step with a heading and nothing under it is caught", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pr-lens-cli-"));
+  const path = join(directory, "tour.json");
+  const document = JSON.parse(await readFile(GOLDEN, "utf8"));
+  delete document.walkthrough.steps[0].body;
+  await writeFile(path, JSON.stringify(document), "utf8");
+
+  expect(await invoke("validate", path)).toBe(1);
+  expect(err.join("\n")).toContain("walkthrough.steps[0].body");
 });
 
 test("an invalid document fails with every problem, not only the first", async () => {

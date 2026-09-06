@@ -1,6 +1,7 @@
 export { SCHEMA_VERSION, type SchemaVersion } from "./version.js";
 
 export {
+  Beat,
   Delta,
   DELTAS,
   FileRef,
@@ -9,6 +10,7 @@ export {
   Label,
   Lens,
   LENSES,
+  Line,
   MAX_RENDER_ASSETS,
   MAX_VIEWS,
   Theme,
@@ -34,8 +36,12 @@ export {
   Provenance,
   StatChip,
   Stats,
+  StepFocus,
+  StepStage,
   View,
   ViewScope,
+  Walkthrough,
+  WalkthroughStep,
   type GraphDocInput,
   type ViewInput,
 } from "./graph.js";
@@ -78,5 +84,7 @@ export {
 } from "./validate.js";
 
 export { applyPatch, applyPatchDoc } from "./apply.js";
+
+export { pruneWalkthrough, type WalkthroughSubject } from "./walkthrough.js";
 
 export { assertNever } from "./utils.js";

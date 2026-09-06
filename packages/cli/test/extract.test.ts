@@ -1,3 +1,4 @@
+import { SCHEMA_VERSION } from "@coldtea/pr-lens-schema";
 import { minimalGraph } from "@coldtea/pr-lens-schema/examples";
 import { expect, test, vi } from "vitest";
 import { applyKnownFields, extractGraph, readJsonObject, type KnownFields } from "../src/extract.js";
@@ -27,7 +28,7 @@ test("what the repository knows is written over what the model claimed", () => {
   );
 
   expect(stamped).toMatchObject({
-    schemaVersion: "0.1.0",
+    schemaVersion: SCHEMA_VERSION,
     kind: "graph",
     generatedAt: known.generatedAt,
     provenance: { repo: { owner: "coldteadotai", name: "pr-lens" } },

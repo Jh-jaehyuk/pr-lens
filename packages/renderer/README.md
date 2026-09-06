@@ -58,6 +58,24 @@ pnpm test                 # compares against the goldens
 UPDATE_GOLDENS=1 pnpm test  # records them, for a human to read the diff of
 ```
 
+## The atlas
+
+Every render comes back with an `atlas`: where each lane, node, edge and flow step of that picture landed, in the same viewBox units the file is written in.
+
+```ts
+const { svg, atlas } = render(doc, { lens: "architecture", theme: "dark" });
+atlas.nodes["send-broadcast-bulk"]; // { x, y, width, height }
+atlas.messages["send-pipeline"]?.["batch-post"];
+```
+
+A surface that plays a document's walkthrough has to put a rim around what a step points at, and a step names its elements by id and nothing else. Only the renderer knows where any of them ended up, so the geometry travels beside the picture rather than being measured back out of it by a reader that would have to guess.
+
+Flow steps are keyed by flow first, because a step's id is unique only inside its own flow: two flows may each carry one called `retry`, and neither document is wrong for it.
+
+The atlas is as deterministic as the SVG. Same document, same boxes, in the same key order, each coordinate rounded exactly as the one written into the file beside it, so a box and the rectangle it stands for cannot disagree in the last place. The theme never moves anything, so one atlas answers for both halves of a `<picture>` pair.
+
+Each lens fills in what it draws. The architecture lens places lanes, cards and edges and no flow step; the data-flow lens places the cards heading its columns and the steps of each flow, and no lane or edge. A node the same render draws twice, heading a column in two stacked flows, gets the box covering both of them: a reader sent to that node is being sent to all of it. A card's box is the card, not the badge strip above it, which is context a veil may dim.
+
 ## Corrections
 
 A repository's `.github/pr-lens.yml` is an overlay, applied here before layout and never written back into inference, so a correction keeps holding as the code moves:
@@ -68,7 +86,7 @@ render(doc, { lens: "architecture", theme: "dark", config });
 
 `rename`, `lane` and `group` address nodes by `id:<node-id>` or by a glob over the paths backing them. A `lane` correction may name a band the document never declared; it gets created, with the id for a label, so write `lane: infrastructure` rather than `lane: l3`.
 
-`exclude` takes with it every edge and flow step that touched what it removed, every view that pointed at nothing else, and every layout hint left naming something that is gone. Half an arrow is worse than none, and the corrected document is a document like any other, so it still parses.
+`exclude` takes with it every edge and flow step that touched what it removed, every view that pointed at nothing else, every layout hint left naming something that is gone, and every walkthrough step whose diagram or last focused element went with it. A walkthrough cut below two steps goes too, because one step is a caption. Half an arrow is worse than none, and the corrected document is a document like any other, so it still parses.
 
 ## Addresses
 

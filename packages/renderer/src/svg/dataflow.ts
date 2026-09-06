@@ -12,7 +12,8 @@ import {
   PILL_TEXT_SIZE,
   TITLE_SIZE,
 } from "../design.js";
-import { canvasFor, union } from "../bounds.js";
+import { atlasBoxes, emptyAtlas, type RenderAtlas } from "../atlas.js";
+import { canvasFor, covering, union, type Canvas } from "../bounds.js";
 import type { Box } from "../geometry.js";
 import { measure } from "../text.js";
 import { coord } from "../geometry.js";
@@ -22,6 +23,7 @@ import {
   FLOW_BAND_PAD_Y,
   layoutDataFlow,
   MARKER_INSET,
+  messagePitch,
   PARTICIPANT_TOP,
   SELF_LOOP_CORNER,
   SELF_LOOP_DROP,
@@ -378,7 +380,68 @@ const flowBounds = (layout: FlowLayout, columnWidth: number): Box[] => {
   return [...bands, ...pills, ...loops];
 };
 
-export type DataFlowPainting = { width: number; height: number; body: string };
+/**
+ * The row a step owns: what it draws, grown to the pitch the layout gave it.
+ *
+ * An arrow is a line and a loop is barely taller, so the tight bounds of
+ * either make a poor thing to put a rim around. The row is the honest unit —
+ * it is the space the layout set aside for this step and no other, so two
+ * neighbouring steps can never claim the same band. The label comes with it:
+ * a step lit without its own words is a step a reader cannot name.
+ */
+const messageBox = (placed: PlacedMessage, activeAt: ActiveAt): Box => {
+  const direction = travelDirection(placed.message.kind, placed.fromX, placed.toX);
+
+  const drawn =
+    direction === 0
+      ? selfDrawn(placed, activeAt(placed.message.from, placed.y))
+      : covering(straightDrawn(placed), pillBox(placed, endsFor(placed, activeAt, direction)));
+
+  const pitch = messagePitch(placed.message);
+  return {
+    x: drawn.x,
+    y: drawn.y + drawn.height / 2 - pitch / 2,
+    width: drawn.width,
+    height: pitch,
+  };
+};
+
+const straightDrawn = (placed: PlacedMessage): Box => ({
+  x: Math.min(placed.fromX, placed.toX),
+  y: placed.y,
+  width: Math.abs(placed.toX - placed.fromX),
+  height: 0,
+});
+
+const selfDrawn = (placed: PlacedMessage, activated: boolean): Box =>
+  covering(
+    {
+      x: placed.fromX,
+      y: placed.y,
+      width:
+        (activated ? ACTIVATION_HALF_WIDTH : 0) + SELF_LOOP_REACH + SELF_LOOP_CORNER,
+      height: SELF_LOOP_EXTENT,
+    },
+    selfPillBox(placed, activated),
+  );
+
+const flowAtlas = (layout: FlowLayout, canvas: Canvas): Record<string, Box> => {
+  const activeAt = activationLookup(layout);
+  return atlasBoxes(
+    layout.messages.map((placed) => ({
+      id: placed.message.id,
+      box: messageBox(placed, activeAt),
+    })),
+    canvas,
+  );
+};
+
+export type DataFlowPainting = {
+  width: number;
+  height: number;
+  body: string;
+  atlas: RenderAtlas;
+};
 
 export const paintDataFlow = (
   flows: readonly Flow[],
@@ -404,5 +467,21 @@ export const paintDataFlow = (
         ),
       ),
     ),
+    atlas: {
+      ...emptyAtlas(),
+      /** The card heading a column, which is where this lens draws a node. */
+      nodes: atlasBoxes(
+        layout.flows.flatMap((flow) =>
+          flow.participants.map((participant) => ({
+            id: participant.node.id,
+            box: participant.card,
+          })),
+        ),
+        canvas,
+      ),
+      messages: Object.fromEntries(
+        layout.flows.map((flow) => [flow.flow.id, flowAtlas(flow, canvas)]),
+      ),
+    },
   };
 };

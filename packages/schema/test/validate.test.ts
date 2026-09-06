@@ -146,6 +146,212 @@ describe("graph document validation", () => {
   });
 });
 
+type StepInput = NonNullable<GraphDocInput["walkthrough"]>["steps"][number];
+
+const withSteps = (steps: readonly StepInput[]): GraphDocInput => ({
+  ...postmarkRefactorGraphInput,
+  walkthrough: { steps: [...steps] },
+});
+
+const stepsOfLength = (count: number): StepInput[] =>
+  Array.from({ length: count }, (_, index) => ({
+    id: `step-${index}`,
+    heading: `Step ${index}`,
+    body: `What step ${index} is about.`,
+    stage: { kind: "view", view: "overview" } as const,
+  }));
+
+describe("walkthroughs", () => {
+  it("accepts the tour the reference document carries", () => {
+    const result = safeParseGraphDoc(postmarkRefactorGraphInput);
+    if (!result.ok) throw result.error;
+    expect(result.value.walkthrough?.steps.map((step) => step.id)).toEqual([
+      "batches-of-500",
+      "suppression-first",
+      "old-path-goes-dark",
+      "sequence-start-to-finish",
+      "four-batch-calls",
+      "blast-radius",
+    ]);
+  });
+
+  it("focuses the whole stage when a step says nothing else", () => {
+    const result = safeParseGraphDoc(withSteps(stepsOfLength(2)));
+    if (!result.ok) throw result.error;
+    expect(result.value.walkthrough?.steps[0]?.focus).toEqual({ kind: "all" });
+  });
+
+  it.each([2, 12])("accepts a tour of %i steps", (count) => {
+    expect(safeParseGraphDoc(withSteps(stepsOfLength(count))).ok).toBe(true);
+  });
+
+  it.each([1, 13])("rejects a tour of %i steps", (count) => {
+    expect(safeParseGraphDoc(withSteps(stepsOfLength(count))).ok).toBe(false);
+  });
+
+  it("holds a heading to one line", () => {
+    const [first, second] = stepsOfLength(2);
+    expect(safeParseGraphDoc(withSteps([{ ...first!, heading: "a".repeat(48) }, second!])).ok).toBe(
+      true,
+    );
+    expect(safeParseGraphDoc(withSteps([{ ...first!, heading: "a".repeat(49) }, second!])).ok).toBe(
+      false,
+    );
+  });
+
+  it("holds a body to one line", () => {
+    const [first, second] = stepsOfLength(2);
+    expect(safeParseGraphDoc(withSteps([{ ...first!, body: "a".repeat(140) }, second!])).ok).toBe(
+      true,
+    );
+    expect(safeParseGraphDoc(withSteps([{ ...first!, body: "a".repeat(141) }, second!])).ok).toBe(
+      false,
+    );
+  });
+
+  it("rejects a step with no body, which reads as a heading someone left unfinished", () => {
+    const [first, second] = stepsOfLength(2);
+    const error = expectRejected({
+      ...postmarkRefactorGraphInput,
+      walkthrough: { steps: [{ id: first!.id, heading: first!.heading }, second!] },
+    });
+    expect(error.issues[0]?.path).toBe("walkthrough.steps[0].body");
+  });
+
+  it("rejects a focus that names nothing, rather than reading it as everything", () => {
+    const [first, second] = stepsOfLength(2);
+    const error = expectRejected(
+      withSteps([{ ...first!, focus: { kind: "selection" } }, second!]),
+    );
+    expect(error.message).toContain("a selection must name at least one element");
+  });
+
+  it("rejects two steps sharing an id", () => {
+    const [first, second] = stepsOfLength(2);
+    const error = expectRejected(withSteps([first!, { ...second!, id: first!.id }]));
+    expect(error.code).toBe("DUPLICATE_ID");
+    expect(error.message).toContain("duplicate step id 'step-0'");
+  });
+
+  it("rejects a step staged on a view the document does not have", () => {
+    const [first, second] = stepsOfLength(2);
+    const error = expectRejected(
+      withSteps([{ ...first!, stage: { kind: "view", view: "no-such-view" } }, second!]),
+    );
+    expect(error.code).toBe("BROKEN_REFERENCE");
+    expect(error.issues[0]?.path).toBe("walkthrough.steps[0].stage.view");
+    expect(error.message).toContain("stages unknown view 'no-such-view'");
+  });
+
+  it("rejects a step staged on a flow the document does not have", () => {
+    const [first, second] = stepsOfLength(2);
+    const error = expectRejected(
+      withSteps([{ ...first!, stage: { kind: "flow", flow: "no-such-flow" } }, second!]),
+    );
+    expect(error.code).toBe("BROKEN_REFERENCE");
+    expect(error.issues[0]?.path).toBe("walkthrough.steps[0].stage.flow");
+  });
+
+  it("rejects a focus on an element the document does not have", () => {
+    const [first, second] = stepsOfLength(2);
+    const error = expectRejected(
+      withSteps([{ ...first!, focus: { kind: "selection", nodes: ["ghost"] } }, second!]),
+    );
+    expect(error.issues[0]?.path).toBe("walkthrough.steps[0].focus.nodes[0]");
+    expect(error.message).toContain("focuses unknown node 'ghost'");
+  });
+
+  it("accepts a step with no stage at all, which plays over the picture already shown", () => {
+    const [first, second] = stepsOfLength(2);
+    const doc = withSteps([
+      {
+        id: first!.id,
+        heading: first!.heading,
+        body: first!.body,
+        focus: { kind: "selection", nodes: ["postmark"] },
+      },
+      second!,
+    ]);
+    expect(safeParseGraphDoc(doc).ok).toBe(true);
+  });
+
+  it("accepts flow steps focused through the flow on the stage", () => {
+    const [first, second] = stepsOfLength(2);
+    const doc = withSteps([
+      {
+        ...first!,
+        stage: { kind: "flow", flow: "send-pipeline" },
+        focus: { kind: "selection", messages: ["batch-post"] },
+      },
+      second!,
+    ]);
+    expect(safeParseGraphDoc(doc).ok).toBe(true);
+  });
+
+  it("accepts flow steps focused through a view that draws everything", () => {
+    const [first, second] = stepsOfLength(2);
+    const doc = withSteps([
+      {
+        ...first!,
+        stage: { kind: "view", view: "overview" },
+        focus: { kind: "selection", messages: ["batch-post"] },
+      },
+      second!,
+    ]);
+    expect(safeParseGraphDoc(doc).ok).toBe(true);
+  });
+
+  it("rejects flow steps focused through a view that draws no flow", () => {
+    const [first, second] = stepsOfLength(2);
+    const error = expectRejected(
+      withSteps([
+        {
+          ...first!,
+          stage: { kind: "view", view: "retired-path" },
+          focus: { kind: "selection", messages: ["batch-post"] },
+        },
+        second!,
+      ]),
+    );
+    expect(error.code).toBe("BROKEN_REFERENCE");
+    expect(error.issues[0]?.path).toBe("walkthrough.steps[0].focus.messages[0]");
+    expect(error.message).toContain("which no flow on its stage carries");
+  });
+
+  it("rejects flow steps focused with no stage to draw them on", () => {
+    const [first, second] = stepsOfLength(2);
+    const error = expectRejected(
+      withSteps([
+        {
+          id: first!.id,
+          heading: first!.heading,
+          body: first!.body,
+          focus: { kind: "selection", messages: ["batch-post"] },
+        },
+        second!,
+      ]),
+    );
+    expect(error.code).toBe("INVALID_DOCUMENT");
+    expect(error.issues[0]?.path).toBe("walkthrough.steps[0].focus.messages");
+    expect(error.message).toContain("names no stage to draw them on");
+  });
+
+  it("reports a stage that points nowhere once, not once per step it focuses", () => {
+    const [first, second] = stepsOfLength(2);
+    const error = expectRejected(
+      withSteps([
+        {
+          ...first!,
+          stage: { kind: "flow", flow: "no-such-flow" },
+          focus: { kind: "selection", messages: ["batch-post", "batch-results"] },
+        },
+        second!,
+      ]),
+    );
+    expect(error.issues).toHaveLength(1);
+  });
+});
+
 /** One view per level, so the tree's depth rather than its breadth carries the count. */
 const nestedViews = (count: number): ViewInput[] => {
   let children: ViewInput[] = [];

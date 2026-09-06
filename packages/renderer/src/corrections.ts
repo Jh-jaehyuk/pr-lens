@@ -9,7 +9,7 @@ import type {
   View,
   ViewScope,
 } from "@coldtea/pr-lens-schema";
-import { assertNever } from "@coldtea/pr-lens-schema";
+import { assertNever, pruneWalkthrough } from "@coldtea/pr-lens-schema";
 import { PrLensRenderError } from "./errors.js";
 import { matchesGlob } from "./glob.js";
 
@@ -129,13 +129,20 @@ export const applyCorrections = (doc: GraphDoc, corrections: MapCorrections): Gr
     flow: (id: string) => flows.some((flow) => flow.id === id),
   };
 
+  const views = narrowViews(doc.views, survives);
+
   return {
     ...doc,
     lanes,
     nodes,
     edges,
     flows,
-    views: narrowViews(doc.views, survives),
+    views,
+    /**
+     * Narrowed against the document that came through, views included: a step
+     * can play over a view the overlay has just emptied out.
+     */
+    walkthrough: pruneWalkthrough(doc.walkthrough, { lanes, nodes, edges, flows, views }),
     layout: narrowLayout(doc.layout, survives),
   };
 };

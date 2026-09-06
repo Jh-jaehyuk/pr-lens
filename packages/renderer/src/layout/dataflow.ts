@@ -85,7 +85,7 @@ export type DataFlowLayout = {
   slotCount: number;
 };
 
-const messagePitch = (message: FlowMessage): number =>
+export const messagePitch = (message: FlowMessage): number =>
   message.kind === "self" ? SELF_MESSAGE_PITCH : MESSAGE_PITCH;
 
 /**
