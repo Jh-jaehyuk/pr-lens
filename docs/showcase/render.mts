@@ -15,6 +15,7 @@ import { tiers } from "../../packages/renderer/test/tiers.js";
 import { mixedKindsGraph } from "../../packages/renderer/test/mixed-kinds.js";
 import { frameAsComment, type FrameSection } from "./frame.js";
 import { teaserGraph } from "./teaser.js";
+import { splitGraph, splitThemes } from "./split.js";
 
 const OUT = dirname(fileURLToPath(import.meta.url));
 mkdirSync(OUT, { recursive: true });
@@ -37,6 +38,16 @@ for (const { name, doc } of tiers) {
     );
   console.log(`${name}: ${counts(doc)}`);
 }
+
+// One small render, both themes, cut down the middle for the README.
+writeFileSync(
+  join(OUT, "welcome.architecture.split.svg"),
+  splitThemes({
+    dark: render(splitGraph, { lens: "architecture", theme: "dark" }),
+    light: render(splitGraph, { lens: "architecture", theme: "light" }),
+  }),
+);
+console.log(`split: ${counts(splitGraph)}`);
 
 const reference = tiers.find(({ name }) => name === "tier2-reference");
 if (reference === undefined)

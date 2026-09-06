@@ -117,6 +117,16 @@ For what its worth, you should not be opening a PR this large
 
 <br />
 
+## Light or dark
+
+With the Github app, every diagram ships as a pair, and GitHub shows the one that matches the reader's theme. Or you can render any theme locally via your coding agent
+
+<p align="center">
+  <img alt="One small architecture render cut diagonally: the dark theme on the left, the light theme on the right, with every card and route lining up across the seam" src="docs/showcase/welcome.architecture.split.svg" width="487">
+</p>
+
+<br />
+
 ## Hall of Fame
 
 The pull requests behind Hooks, Node fetch and Ingress, run back through PR Lens. Same renderer and same contract as the diagrams above.
