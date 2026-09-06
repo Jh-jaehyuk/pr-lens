@@ -568,8 +568,8 @@
     "steps": [
       {
         "id": "blast-radius",
-        "heading": "One change, three lanes",
-        "body": "Everything the pull request touched, at once.",
+        "heading": "Broadcasts now send in batches, not one by one",
+        "body": "A 2,000-person broadcast used to make 2,000 calls to Postmark. It now makes 4.",
         "stage": {
           "kind": "view",
           "view": "overview"
@@ -580,8 +580,8 @@
       },
       {
         "id": "batches-of-500",
-        "heading": "Batches of 500, not one per recipient",
-        "body": "The new sender replaces the per-recipient loop.",
+        "heading": "sendBroadcastBulk and buildBulkPayload added",
+        "body": "Nothing loops over recipients any more. The sender works on a whole batch at a time.",
         "stage": {
           "kind": "view",
           "view": "overview"
@@ -600,8 +600,8 @@
       },
       {
         "id": "suppression-first",
-        "heading": "Suppression moves in front of the send",
-        "body": "Bad addresses are filtered before a batch is built.",
+        "heading": "getSuppressedEmails added before the send",
+        "body": "It pulls the blocked addresses once, before any batch is built.",
         "stage": {
           "kind": "view",
           "view": "new-batch-path"
@@ -619,8 +619,8 @@
       },
       {
         "id": "old-path-goes-dark",
-        "heading": "The old path goes dark",
-        "body": "Two functions retire, and nothing else called them.",
+        "heading": "processBroadcast and sendSingleEmail removed",
+        "body": "sendBroadcastBulk does their job for whole batches.",
         "stage": {
           "kind": "view",
           "view": "overview"
@@ -638,8 +638,8 @@
       },
       {
         "id": "sequence-start-to-finish",
-        "heading": "The sequence, start to finish",
-        "body": "Seven steps. Four of them are new.",
+        "heading": "The send sequence gained 6 new steps",
+        "body": "The queue write is the only step that was there before, and it now stamps the batch size.",
         "stage": {
           "kind": "flow",
           "flow": "send-pipeline"
@@ -650,8 +650,8 @@
       },
       {
         "id": "four-batch-calls",
-        "heading": "Four batch calls, one run",
-        "body": "500 messages a call, and Postmark answers each one.",
+        "heading": "Postmark now gets 500 emails per call",
+        "body": "One call per batch, and Postmark answers with a result for each message.",
         "stage": {
           "kind": "flow",
           "flow": "send-pipeline"

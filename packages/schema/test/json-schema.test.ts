@@ -73,14 +73,14 @@ const nestedViews = (count: number): ViewInput[] => {
 const twoSteps = [
   {
     id: "first",
-    heading: "One change, three lanes",
-    body: "Everything the pull request touched, at once.",
+    heading: "Broadcasts now send in batches, not one by one",
+    body: "A 2,000-person broadcast used to make 2,000 calls to Postmark. It now makes 4.",
     stage: { kind: "view", view: "overview" },
   },
   {
     id: "second",
-    heading: "The sequence",
-    body: "Seven steps. Four of them are new.",
+    heading: "The send sequence gained 6 new steps",
+    body: "The queue write is the only step that was there before, and it now stamps the batch size.",
     stage: { kind: "flow", flow: "send-pipeline" },
   },
 ];

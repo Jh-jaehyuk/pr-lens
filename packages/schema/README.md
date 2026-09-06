@@ -51,14 +51,14 @@ walkthrough: {
   steps: [
     {
       id: "blast-radius",
-      heading: "One change, three lanes",
-      body: "Everything the pull request touched, at once.",
+      heading: "Broadcasts now send in batches, not one by one",
+      body: "A 2,000-person broadcast used to make 2,000 calls to Postmark. It now makes 4.",
       stage: { kind: "view", view: "overview" },
     },
     {
       id: "four-batch-calls",
-      heading: "Four batch calls, one run",
-      body: "500 messages a call, and Postmark answers each one.",
+      heading: "Postmark now gets 500 emails per call",
+      body: "One call per batch, and Postmark answers with a result for each message.",
       stage: { kind: "flow", flow: "send-pipeline" },
       focus: { kind: "selection", messages: ["batch-post", "batch-results"] },
     },
@@ -70,8 +70,8 @@ A walkthrough is a short guided tour of the diagrams. It has two to twelve steps
 
 Each step has:
 
-- `heading`: what this step is about, up to 48 characters. For example "Batches of 500, not one per recipient".
-- `body`: one line under the heading, up to 140 characters. For example "The new sender replaces the per-recipient loop."
+- `heading`: the thing and what happened to it, up to 48 characters, in sentence case. For example "Postmark now gets 500 emails per call".
+- `body`: one line under the heading, up to 140 characters, on what the change means for behaviour. For example "One call per batch instead of one call per person". A heading with no body reads as unfinished, so the parser requires one.
 - `stage`: which diagram to show. A document can have several diagrams: its views (the drill-down diagrams) and its flows (the sequence diagrams). `{ "kind": "view", "view": "overview" }` shows the view called `overview`. `{ "kind": "flow", "flow": "send-pipeline" }` shows the flow called `send-pipeline`. Leave `stage` out and the step uses the diagram the reader is already on.
 - `focus`: what to zoom in on inside that diagram. `{ "kind": "all" }` means the whole diagram. A selection means "just these things": name any lanes, nodes, edges or flow steps (`messages`) by id, and the camera zooms to them while everything else dims. A selection must name at least one thing.
 
