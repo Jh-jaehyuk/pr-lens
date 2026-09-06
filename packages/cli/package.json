@@ -38,6 +38,7 @@
     "node": ">=20.11"
   },
   "scripts": {
+    "prepublishOnly": "pnpm run build",
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
