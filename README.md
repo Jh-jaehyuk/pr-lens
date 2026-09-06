@@ -98,6 +98,32 @@ The comment nests `<details>` sections, each carrying its own diagram scoped to 
 <tr>
 <td width="46%" valign="middle">
 
+### Open it big
+
+Every comment links to the interactive canvas: the same diagrams at full size, with pan, zoom and a light or dark theme, so a large change is read at the size it needs rather than the width of a comment.
+
+</td>
+<td width="54%" valign="middle">
+<a href="https://prlens.dev/c/uSdxMcPBFwhfgfaGh-dveQ"><img alt="The canvas: a small architecture render zoomed into, switched to the light theme, and fitted back to the screen" src="docs/showcase/welcome.canvas.gif"></a>
+</td>
+</tr>
+
+<tr>
+<td width="46%" valign="middle">
+
+### Walk the change
+
+A walkthrough tours the change one step at a time. It dims everything else, lights the cards and routes for that step, and says in a line what happened there. Press play on the canvas, or W.
+
+</td>
+<td width="54%" valign="middle">
+<a href="https://prlens.dev/c/uSdxMcPBFwhfgfaGh-dveQ"><img alt="A walkthrough on the canvas: the first step lights the signup route and the new queue, the second zooms to the queue and the worker that drains it" src="docs/showcase/welcome.walkthrough.gif"></a>
+</td>
+</tr>
+
+<tr>
+<td width="46%" valign="middle">
+
 ### From one card to a monorepo
 
 The same visual grammar answers for every size of change: lanes, node cards, delta colours, and routes you can trace with your eye alone.
@@ -113,17 +139,20 @@ For what its worth, you should not be opening a PR this large
 </td>
 </tr>
 
-</table>
+<tr>
+<td width="46%" valign="middle">
 
-<br />
-
-## Light or dark
+### Light or dark theme
 
 With the Github app, every diagram ships as a pair, and GitHub shows the one that matches the reader's theme. Or you can render any theme locally via your coding agent
 
-<p align="center">
-  <img alt="One small architecture render cut diagonally: the dark theme on the left, the light theme on the right, with every card and route lining up across the seam" src="docs/showcase/welcome.architecture.split.svg" width="487">
-</p>
+</td>
+<td width="54%" valign="middle">
+<p align="center"><img alt="One small architecture render cut diagonally: the dark theme on the left, the light theme on the right, with every card and route lining up across the seam" src="docs/showcase/welcome.architecture.split.svg" width="487"></p>
+</td>
+</tr>
+
+</table>
 
 <br />
 
@@ -207,8 +236,8 @@ It is an overlay, so it keeps holding as the code moves and the model renames th
 
 The App is the whole setup for most people. The modes below cover what it does not: your own CI, your own model, or a diagram before the pull request exists.
 
-<details>
-<summary><b>Via your coding agent</b> · it writes the document itself · no second model bill</summary>
+<details open>
+<summary><b>Via your coding agent</b></summary>
 <br>
 
 Your agent is usually already the model. Rather than spending a provider key to describe a diff it already understands, it writes the graph document itself and lets the validator hold it to the contract.

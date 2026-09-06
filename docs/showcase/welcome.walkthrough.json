@@ -1,0 +1,249 @@
+{
+  "schemaVersion": "0.1.1",
+  "kind": "graph",
+  "title": "Add a welcome email on signup",
+  "summary": "Signup now publishes an event; a new welcome worker drains it and retires the inline mailer.",
+  "lenses": [
+    "architecture"
+  ],
+  "provenance": {
+    "repo": {
+      "owner": "acme",
+      "name": "webapp",
+      "host": "github.com"
+    },
+    "base": {
+      "sha": "0000000"
+    },
+    "head": {
+      "sha": "1111111"
+    }
+  },
+  "lanes": [
+    {
+      "id": "api",
+      "label": "API",
+      "order": 0
+    },
+    {
+      "id": "services",
+      "label": "Services",
+      "order": 1
+    },
+    {
+      "id": "data",
+      "label": "Data",
+      "order": 2
+    }
+  ],
+  "nodes": [
+    {
+      "id": "signup-route",
+      "label": "POST /signup",
+      "kind": "route",
+      "delta": "modified",
+      "lane": "api",
+      "files": [
+        {
+          "path": "app/api/signup/route.ts"
+        }
+      ],
+      "badges": []
+    },
+    {
+      "id": "email-queue",
+      "label": "email-queue",
+      "kind": "queue",
+      "delta": "added",
+      "lane": "services",
+      "subtitle": "signup.welcome",
+      "files": [
+        {
+          "path": "infra/queues/email.ts"
+        }
+      ],
+      "badges": []
+    },
+    {
+      "id": "welcome-service",
+      "label": "welcome-service",
+      "kind": "service",
+      "delta": "added",
+      "lane": "services",
+      "subtitle": "queue worker",
+      "files": [
+        {
+          "path": "services/welcome/worker.ts"
+        }
+      ],
+      "badges": []
+    },
+    {
+      "id": "legacy-mailer",
+      "label": "legacy-mailer",
+      "kind": "service",
+      "delta": "removed",
+      "lane": "services",
+      "files": [
+        {
+          "path": "services/legacy-mailer.ts"
+        }
+      ],
+      "badges": []
+    },
+    {
+      "id": "user-store",
+      "label": "user store",
+      "kind": "datastore",
+      "delta": "unchanged",
+      "lane": "data",
+      "files": [],
+      "badges": []
+    },
+    {
+      "id": "email-log",
+      "label": "email log",
+      "kind": "datastore",
+      "delta": "added",
+      "lane": "data",
+      "files": [
+        {
+          "path": "services/welcome/log.ts"
+        }
+      ],
+      "badges": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "signup-to-queue",
+      "from": "signup-route",
+      "to": "email-queue",
+      "kind": "event",
+      "delta": "added",
+      "label": "signup event",
+      "emphasis": "hero",
+      "animated": true,
+      "files": []
+    },
+    {
+      "id": "queue-to-welcome",
+      "from": "email-queue",
+      "to": "welcome-service",
+      "kind": "queue",
+      "delta": "added",
+      "label": "welcome job",
+      "emphasis": "normal",
+      "animated": true,
+      "files": []
+    },
+    {
+      "id": "welcome-to-store",
+      "from": "welcome-service",
+      "to": "user-store",
+      "kind": "data",
+      "delta": "added",
+      "label": "load profile",
+      "emphasis": "normal",
+      "animated": true,
+      "files": []
+    },
+    {
+      "id": "welcome-to-log",
+      "from": "welcome-service",
+      "to": "email-log",
+      "kind": "data",
+      "delta": "added",
+      "label": "record send",
+      "emphasis": "normal",
+      "animated": true,
+      "files": []
+    },
+    {
+      "id": "signup-to-legacy",
+      "from": "signup-route",
+      "to": "legacy-mailer",
+      "kind": "call",
+      "delta": "removed",
+      "label": "send inline",
+      "emphasis": "normal",
+      "animated": false,
+      "files": []
+    }
+  ],
+  "flows": [],
+  "views": [],
+  "walkthrough": {
+    "steps": [
+      {
+        "id": "signup-emits",
+        "heading": "Signup stops sending mail",
+        "body": "The route now publishes one event and moves on.",
+        "focus": {
+          "kind": "selection",
+          "lanes": [],
+          "nodes": [
+            "signup-route",
+            "email-queue"
+          ],
+          "edges": [
+            "signup-to-queue"
+          ],
+          "messages": []
+        }
+      },
+      {
+        "id": "worker-drains",
+        "heading": "A worker picks it up",
+        "body": "The new welcome service drains the queue in its own time.",
+        "focus": {
+          "kind": "selection",
+          "lanes": [],
+          "nodes": [
+            "email-queue",
+            "welcome-service"
+          ],
+          "edges": [
+            "queue-to-welcome"
+          ],
+          "messages": []
+        }
+      },
+      {
+        "id": "worker-writes",
+        "heading": "It reads the profile and logs the send",
+        "body": "One store it already had, one it gets in this change.",
+        "focus": {
+          "kind": "selection",
+          "lanes": [],
+          "nodes": [
+            "welcome-service",
+            "user-store",
+            "email-log"
+          ],
+          "edges": [
+            "welcome-to-store",
+            "welcome-to-log"
+          ],
+          "messages": []
+        }
+      },
+      {
+        "id": "mailer-goes",
+        "heading": "The inline mailer is gone",
+        "body": "Nothing calls it any more, so it leaves with this change.",
+        "focus": {
+          "kind": "selection",
+          "lanes": [],
+          "nodes": [
+            "legacy-mailer"
+          ],
+          "edges": [
+            "signup-to-legacy"
+          ],
+          "messages": []
+        }
+      }
+    ]
+  }
+}
