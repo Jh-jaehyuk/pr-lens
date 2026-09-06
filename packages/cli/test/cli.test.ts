@@ -119,7 +119,9 @@ test("a walkthrough step focusing a flow step its stage never draws is caught", 
   const directory = await mkdtemp(join(tmpdir(), "pr-lens-cli-"));
   const path = join(directory, "tour.json");
   const document = JSON.parse(await readFile(GOLDEN, "utf8"));
-  const step = document.walkthrough.steps.at(-1);
+  const step = document.walkthrough.steps.find(
+    ({ id }: { id: string }) => id === "four-batch-calls",
+  );
   step.focus.messages = [...step.focus.messages, "no-such-step"];
   await writeFile(path, JSON.stringify(document), "utf8");
 

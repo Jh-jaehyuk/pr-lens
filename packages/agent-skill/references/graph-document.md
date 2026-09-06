@@ -213,18 +213,18 @@ Optional in the format, but write one for anything that is not trivial: more tha
   "walkthrough": {
     "steps": [
       {
-        "id": "blast-radius",
-        "heading": "Broadcasts now send in batches, not one by one",
-        "body": "A 2,000-person broadcast used to make 2,000 calls to Postmark. It now makes 4.",
-        "stage": { "kind": "view", "view": "overview" },
-        "focus": { "kind": "all" }
-      },
-      {
         "id": "four-batch-calls",
         "heading": "Postmark now gets 500 emails per call",
         "body": "One call per batch, and Postmark answers with a result for each message.",
         "stage": { "kind": "flow", "flow": "send-pipeline" },
         "focus": { "kind": "selection", "messages": ["batch-post", "batch-results"] }
+      },
+      {
+        "id": "blast-radius",
+        "heading": "4 parts added, 2 removed, across 3 lanes",
+        "body": "A 2,000-person broadcast used to make 2,000 calls to Postmark. It now makes 4.",
+        "stage": { "kind": "view", "view": "overview" },
+        "focus": { "kind": "all" }
       }
     ]
   }

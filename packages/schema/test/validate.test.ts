@@ -166,12 +166,12 @@ describe("walkthroughs", () => {
     const result = safeParseGraphDoc(postmarkRefactorGraphInput);
     if (!result.ok) throw result.error;
     expect(result.value.walkthrough?.steps.map((step) => step.id)).toEqual([
-      "blast-radius",
       "batches-of-500",
       "suppression-first",
       "old-path-goes-dark",
       "sequence-start-to-finish",
       "four-batch-calls",
+      "blast-radius",
     ]);
   });
 

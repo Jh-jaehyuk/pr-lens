@@ -436,11 +436,11 @@ describe("carrying a walkthrough through a patch", () => {
     const patched = expectApplied([{ op: "remove_node", id: "postmark" }]);
 
     expect(stepIds(patched)).toEqual([
-      "blast-radius",
       "batches-of-500",
       "suppression-first",
       "old-path-goes-dark",
       "sequence-start-to-finish",
+      "blast-radius",
     ]);
   });
 
@@ -448,10 +448,10 @@ describe("carrying a walkthrough through a patch", () => {
     const patched = expectApplied([{ op: "remove_flow", id: "send-pipeline" }]);
 
     expect(stepIds(patched)).toEqual([
-      "blast-radius",
       "batches-of-500",
       "suppression-first",
       "old-path-goes-dark",
+      "blast-radius",
     ]);
   });
 

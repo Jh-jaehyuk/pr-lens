@@ -73,8 +73,8 @@ const nestedViews = (count: number): ViewInput[] => {
 const twoSteps = [
   {
     id: "first",
-    heading: "Broadcasts now send in batches, not one by one",
-    body: "A 2,000-person broadcast used to make 2,000 calls to Postmark. It now makes 4.",
+    heading: "sendBroadcastBulk and buildBulkPayload added",
+    body: "Nothing loops over recipients any more. The sender works on a whole batch at a time.",
     stage: { kind: "view", view: "overview" },
   },
   {
