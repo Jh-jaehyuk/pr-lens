@@ -3,18 +3,13 @@ import { assertNever } from "./utils.js";
 
 const NOTHING: ReadonlySet<string> = new Set();
 
-/** Every view in the drill-down tree, keyed by id, children included. */
 export const indexViews = (views: readonly View[]): Map<string, View> =>
   new Map(views.flatMap((view) => [[view.id, view] as const, ...indexViews(view.children)]));
 
 /**
- * The flow steps a stage puts on screen, which is the whole answer to whether
- * a step may focus one: a step the reader will never see is a reference to
- * nothing, however real the id.
- *
- * A flow step is only ever identified within its own flow, so this is the only
- * honest way to ask the question. Two flows may each carry a step called
- * `retry`, and neither document is wrong for it.
+ * A flow step is only ever identified within its own flow, so the stage rather
+ * than the document decides which one a focus meant. Two flows may each carry
+ * a step called `retry`, and neither document is wrong for it.
  *
  * `unknown-stage` is its own answer rather than an empty set, so a stage that
  * names a view or flow the document lacks is reported once, as the broken
@@ -66,11 +61,9 @@ export const stagedMessages = (
 };
 
 /**
- * The parts of a document a walkthrough can point at.
- *
- * Pruning reads the document that survived rather than a list of the ids that
- * went, because a step names a diagram as well as elements, and because a
- * flow step means nothing outside the flow that carries it.
+ * The document that survived, rather than the ids that went: a step names a
+ * diagram as well as elements, and a flow step means nothing outside the flow
+ * that carries it.
  */
 export type WalkthroughSubject = {
   lanes: readonly Lane[];
@@ -95,7 +88,6 @@ const stageSurvives = (
   }
 };
 
-/** Both ways of drawing nothing leave nothing a step is allowed to focus. */
 const focusable = (staged: StagedMessages): ReadonlySet<string> => {
   switch (staged.kind) {
     case "messages":
@@ -109,14 +101,9 @@ const focusable = (staged: StagedMessages): ReadonlySet<string> => {
 };
 
 /**
- * A step whose diagram is gone has nowhere to play, and a focus that loses
- * its last element has nothing to point at; either way the step goes rather
- * than being left to widen into a step about everything. A tour of one step
- * is a caption, so a walkthrough cut below two steps goes with them.
- *
- * A focused flow step is measured against the stage that draws it, not
- * against the document at large: a step called `retry` surviving in some
- * other flow says nothing about the one this step is playing over.
+ * A step that loses the last element it focused is dropped rather than left
+ * to widen into a step about everything. A tour of one step is a caption, so
+ * a walkthrough cut below two steps goes whole.
  */
 export const pruneWalkthrough = (
   walkthrough: Walkthrough | undefined,
