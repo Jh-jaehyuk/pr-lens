@@ -49,7 +49,10 @@ export const Beat = z
   .max(48)
   .describe("A step heading. Short enough to read at a glance.");
 
-/** The one line of body a step may carry under its heading. */
+/**
+ * The one line of body under a step's heading. Required: a heading with
+ * nothing under it reads as a step someone started and never finished.
+ */
 export const Line = z
   .string()
   .min(1)

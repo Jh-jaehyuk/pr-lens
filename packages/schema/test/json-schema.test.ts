@@ -71,8 +71,18 @@ const nestedViews = (count: number): ViewInput[] => {
 };
 
 const twoSteps = [
-  { id: "first", heading: "One change, three lanes", stage: { kind: "view", view: "overview" } },
-  { id: "second", heading: "The sequence", stage: { kind: "flow", flow: "send-pipeline" } },
+  {
+    id: "first",
+    heading: "One change, three lanes",
+    body: "Everything the pull request touched, at once.",
+    stage: { kind: "view", view: "overview" },
+  },
+  {
+    id: "second",
+    heading: "The sequence",
+    body: "Seven steps. Four of them are new.",
+    stage: { kind: "flow", flow: "send-pipeline" },
+  },
 ];
 
 const withWalkthrough = (steps: unknown[]) => ({
@@ -295,10 +305,24 @@ const parityCases: ParityCase[] = [
     accepted: false,
   },
   {
+    name: "a step with a heading and nothing under it",
+    schema: "graph-doc.schema.json",
+    parse: safeParseGraphDoc,
+    document: withWalkthrough([withoutKey(twoSteps[0]!, "body"), twoSteps[1]]),
+    accepted: false,
+  },
+  {
     name: "a step heading longer than the rail can hold",
     schema: "graph-doc.schema.json",
     parse: safeParseGraphDoc,
     document: withWalkthrough([{ ...twoSteps[0], heading: "a".repeat(49) }, twoSteps[1]]),
+    accepted: false,
+  },
+  {
+    name: "a step body longer than the line beneath the heading",
+    schema: "graph-doc.schema.json",
+    parse: safeParseGraphDoc,
+    document: withWalkthrough([{ ...twoSteps[0], body: "a".repeat(141) }, twoSteps[1]]),
     accepted: false,
   },
   {

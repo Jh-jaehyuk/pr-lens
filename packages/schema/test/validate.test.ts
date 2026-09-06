@@ -157,6 +157,7 @@ const stepsOfLength = (count: number): StepInput[] =>
   Array.from({ length: count }, (_, index) => ({
     id: `step-${index}`,
     heading: `Step ${index}`,
+    body: `What step ${index} is about.`,
     stage: { kind: "view", view: "overview" } as const,
   }));
 
@@ -208,6 +209,15 @@ describe("walkthroughs", () => {
     );
   });
 
+  it("rejects a step with no body, which reads as a heading someone left unfinished", () => {
+    const [first, second] = stepsOfLength(2);
+    const error = expectRejected({
+      ...postmarkRefactorGraphInput,
+      walkthrough: { steps: [{ id: first!.id, heading: first!.heading }, second!] },
+    });
+    expect(error.issues[0]?.path).toBe("walkthrough.steps[0].body");
+  });
+
   it("rejects a focus that names nothing, rather than reading it as everything", () => {
     const [first, second] = stepsOfLength(2);
     const error = expectRejected(
@@ -254,7 +264,12 @@ describe("walkthroughs", () => {
   it("accepts a step with no stage at all, which plays over the picture already shown", () => {
     const [first, second] = stepsOfLength(2);
     const doc = withSteps([
-      { id: first!.id, heading: first!.heading, focus: { kind: "selection", nodes: ["postmark"] } },
+      {
+        id: first!.id,
+        heading: first!.heading,
+        body: first!.body,
+        focus: { kind: "selection", nodes: ["postmark"] },
+      },
       second!,
     ]);
     expect(safeParseGraphDoc(doc).ok).toBe(true);
@@ -310,6 +325,7 @@ describe("walkthroughs", () => {
         {
           id: first!.id,
           heading: first!.heading,
+          body: first!.body,
           focus: { kind: "selection", messages: ["batch-post"] },
         },
         second!,

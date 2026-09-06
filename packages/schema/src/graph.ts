@@ -328,11 +328,13 @@ export const WalkthroughStep = z
   .strictObject({
     id: Id,
     heading: Beat,
-    body: Line.optional(),
+    body: Line,
     stage: StepStage.optional(),
     focus: StepFocus.default({ kind: "all" }),
   })
-  .describe("One stop on the walkthrough: a heading, and the part of one diagram it is about.");
+  .describe(
+    "One stop on the walkthrough: a heading, a line under it, and the part of one diagram it is about.",
+  );
 export type WalkthroughStep = z.infer<typeof WalkthroughStep>;
 
 /**

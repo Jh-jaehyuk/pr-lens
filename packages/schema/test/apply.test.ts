@@ -457,9 +457,24 @@ describe("carrying a walkthrough through a patch", () => {
 
   it("drops a step staged on a view the prune took with it", () => {
     const graph = withSteps([
-      { id: "retired", heading: "What was retired", stage: { kind: "view", view: "retired-path" } },
-      { id: "overview", heading: "Blast radius", stage: { kind: "view", view: "overview" } },
-      { id: "pipeline", heading: "The sequence", stage: { kind: "flow", flow: "send-pipeline" } },
+      {
+        id: "retired",
+        heading: "What was retired",
+        body: "The path that went dark.",
+        stage: { kind: "view", view: "retired-path" },
+      },
+      {
+        id: "overview",
+        heading: "Blast radius",
+        body: "Everything the change touched.",
+        stage: { kind: "view", view: "overview" },
+      },
+      {
+        id: "pipeline",
+        heading: "The sequence",
+        body: "Start to finish, in order.",
+        stage: { kind: "flow", flow: "send-pipeline" },
+      },
     ]);
 
     const patched = expectApplied(
@@ -476,9 +491,14 @@ describe("carrying a walkthrough through a patch", () => {
 
   it("keeps a tour cut to two steps", () => {
     const graph = withSteps([
-      { id: "one", heading: "One", stage: { kind: "view", view: "overview" } },
-      { id: "two", heading: "Two", stage: { kind: "view", view: "overview" } },
-      { id: "three", heading: "Three", stage: { kind: "flow", flow: "send-pipeline" } },
+      { id: "one", heading: "One", body: "The first stop.", stage: { kind: "view", view: "overview" } },
+      { id: "two", heading: "Two", body: "The second stop.", stage: { kind: "view", view: "overview" } },
+      {
+        id: "three",
+        heading: "Three",
+        body: "The third stop.",
+        stage: { kind: "flow", flow: "send-pipeline" },
+      },
     ]);
 
     const patched = expectApplied([{ op: "remove_flow", id: "send-pipeline" }], graph);
@@ -487,8 +507,13 @@ describe("carrying a walkthrough through a patch", () => {
 
   it("drops a tour cut below two steps, which is a caption rather than a walk", () => {
     const graph = withSteps([
-      { id: "one", heading: "One", stage: { kind: "view", view: "overview" } },
-      { id: "two", heading: "Two", stage: { kind: "flow", flow: "send-pipeline" } },
+      { id: "one", heading: "One", body: "The first stop.", stage: { kind: "view", view: "overview" } },
+      {
+        id: "two",
+        heading: "Two",
+        body: "The second stop.",
+        stage: { kind: "flow", flow: "send-pipeline" },
+      },
     ]);
 
     const patched = expectApplied([{ op: "remove_flow", id: "send-pipeline" }], graph);
@@ -528,12 +553,14 @@ describe("carrying a walkthrough through a patch", () => {
           {
             id: "over-first",
             heading: "Over the first flow",
+            body: "Two of its steps.",
             stage: { kind: "flow", flow: "first" },
             focus: { kind: "selection", messages: ["shared", "keep"] },
           },
           {
             id: "over-second",
             heading: "Over the second flow",
+            body: "All of it.",
             stage: { kind: "flow", flow: "second" },
           },
         ],
@@ -583,16 +610,23 @@ describe("carrying a walkthrough through a patch", () => {
           {
             id: "the-first",
             heading: "The first flow",
+            body: "One step of it.",
             stage: { kind: "view", view: "both" },
             focus: { kind: "selection", messages: ["only-in-first"] },
           },
           {
             id: "the-second",
             heading: "The second flow",
+            body: "One step of it.",
             stage: { kind: "view", view: "both" },
             focus: { kind: "selection", messages: ["only-in-second"] },
           },
-          { id: "everything", heading: "Everything", stage: { kind: "view", view: "both" } },
+          {
+            id: "everything",
+            heading: "Everything",
+            body: "Both flows at once.",
+            stage: { kind: "view", view: "both" },
+          },
         ],
       },
     });
@@ -633,8 +667,8 @@ describe("carrying a walkthrough through a patch", () => {
       ...broadcastBaselineGraph,
       walkthrough: {
         steps: [
-          { id: "one", heading: "One", focus: { kind: "all" } },
-          { id: "two", heading: "Two", focus: { kind: "all" } },
+          { id: "one", heading: "One", body: "The first stop.", focus: { kind: "all" } },
+          { id: "two", heading: "Two", body: "The second stop.", focus: { kind: "all" } },
         ],
       },
     });

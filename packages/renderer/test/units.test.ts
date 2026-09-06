@@ -344,10 +344,16 @@ describe("layout hints survive a correction", () => {
           {
             id: "over-first",
             heading: "Over the first flow",
+            body: "Two of its steps.",
             stage: { kind: "flow", flow: "first" },
             focus: { kind: "selection", messages: ["shared", "keep"] },
           },
-          { id: "over-second", heading: "Over the second flow", stage: { kind: "flow", flow: "second" } },
+          {
+            id: "over-second",
+            heading: "Over the second flow",
+            body: "All of it.",
+            stage: { kind: "flow", flow: "second" },
+          },
         ],
       },
     });

@@ -999,10 +999,11 @@
             },
             "required": [
               "id",
-              "heading"
+              "heading",
+              "body"
             ],
             "additionalProperties": false,
-            "description": "One stop on the walkthrough: a heading, and the part of one diagram it is about."
+            "description": "One stop on the walkthrough: a heading, a line under it, and the part of one diagram it is about."
           },
           "description": "Ordered by array position."
         }

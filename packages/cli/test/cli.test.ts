@@ -129,6 +129,17 @@ test("a walkthrough step focusing a flow step its stage never draws is caught", 
   expect(reported).toContain("focuses 'no-such-step', which no flow on its stage carries");
 });
 
+test("a walkthrough step with a heading and nothing under it is caught", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pr-lens-cli-"));
+  const path = join(directory, "tour.json");
+  const document = JSON.parse(await readFile(GOLDEN, "utf8"));
+  delete document.walkthrough.steps[0].body;
+  await writeFile(path, JSON.stringify(document), "utf8");
+
+  expect(await invoke("validate", path)).toBe(1);
+  expect(err.join("\n")).toContain("walkthrough.steps[0].body");
+});
+
 test("an invalid document fails with every problem, not only the first", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pr-lens-cli-"));
   const path = join(directory, "broken.json");
