@@ -24,7 +24,7 @@
 <h3 align="center"><a href="https://github.com/apps/coldtea-pr-lens">Install the GitHub App</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="https://skills.sh/coldteadotai/pr-lens">Install the Skill</a></h3>
 
 <p align="center">
-  <sub>Free for open source. &nbsp;&nbsp;·&nbsp;&nbsp; Or let your coding agent draw it: <code>npx skills add coldteadotai/pr-lens</code></sub>
+  <sub>Free for open source &nbsp;&nbsp;·&nbsp;&nbsp; Or let your coding agent draw it: <code>npx skills add coldteadotai/pr-lens</code></sub>
 </p>
 
 <p align="center">
@@ -241,6 +241,14 @@ The App is the whole setup for most people. The modes below cover what it does n
 <br>
 
 Your agent is usually already the model. Rather than spending a provider key to describe a diff it already understands, it writes the graph document itself and lets the validator hold it to the contract.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/agents.dark.svg">
+    <img alt="Claude Code, Codex, Gemini CLI, Cursor, OpenCode and Copilot" src="docs/brand/agents.light.svg" width="720">
+  </picture>
+  <br>
+</p>
 
 ```bash
 npx skills add coldteadotai/pr-lens
