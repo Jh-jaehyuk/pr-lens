@@ -206,7 +206,7 @@ This compact fragment shows the shape. The selected ids refer to elements declar
 
 ## Walkthrough
 
-Optional. A canvas or a share page plays it.
+Optional in the format, but write one for anything that is not trivial: more than one diagram, a diagram with several changed parts, or any flow. Skip it only when the document is one small diagram whose single step would just repeat the title. A canvas or a share page plays it.
 
 ```json
 {
