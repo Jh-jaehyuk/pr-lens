@@ -109,19 +109,23 @@ The contract leaves a walkthrough optional. Write one anyway for anything that i
 
 Aim for three to seven steps.
 
+A walkthrough is the fastest read of a pull request. Each step is one change: something added, changed, removed or moved, in the order a reviewer needs it. A step is never a description of the diagram.
+
+What counts as a step: a behaviour change, an API change, an architecture change, a data-flow change, or an addition. Unchanged parts appear only where a step needs them to make sense. The headline change is step one. An overview of everything touched, if there is one, is the last step.
+
 ```json
 "walkthrough": {
   "steps": [
     {
       "id": "blast-radius",
-      "heading": "One change, three lanes",
-      "body": "Everything the pull request touched, at once.",
+      "heading": "Broadcasts now send in batches, not one by one",
+      "body": "A 2,000-person broadcast used to make 2,000 calls to Postmark. It now makes 4.",
       "stage": { "kind": "view", "view": "overview" }
     },
     {
       "id": "four-batch-calls",
-      "heading": "Four batch calls, one run",
-      "body": "500 messages a call, and Postmark answers each one.",
+      "heading": "Postmark now gets 500 emails per call",
+      "body": "One call per batch, and Postmark answers with a result for each message.",
       "stage": { "kind": "flow", "flow": "send-pipeline" },
       "focus": { "kind": "selection", "messages": ["batch-post", "batch-results"] }
     }
@@ -131,10 +135,20 @@ Aim for three to seven steps.
 
 Each step has:
 
-- `heading`: what this step is about, up to 48 characters. Write a beat rather than a label: "The old path goes dark", not "Removed functions".
-- `body`: one line under the heading, up to 140 characters. For example "The new sender replaces the per-recipient loop." Write for someone looking at the picture, not reading a paragraph.
+- `heading`: the thing and what happened to it, up to 48 characters, in sentence case. Build it from change words: added, removed, replaced, now, moved, split. If a heading could have been true before the pull request, it is not a change heading.
+- `body`: one line under the heading, up to 140 characters, on what the change means for behaviour: what happens now that did not before, or what stops happening, with the numbers when they matter. Not a restatement of the heading, and not a description of the code. A heading with no body reads as unfinished, so the body is required.
 - `stage`: which diagram to show. A document can have several diagrams: its views (the drill-down diagrams) and its flows (the sequence diagrams). `{ "kind": "view", "view": "overview" }` shows the view called `overview`. `{ "kind": "flow", "flow": "send-pipeline" }` shows the flow called `send-pipeline`. Leave `stage` out and the step uses the diagram the reader is already on. Open on the widest view with the focus left out, so the reader sees the whole thing before it narrows.
-- `focus`: what to zoom in on inside that diagram. `{ "kind": "all" }`, the default, means the whole diagram. A selection means "just these things": name any lanes, nodes, edges or flow steps (`messages`) by id, and the camera zooms to them while everything else dims. Point at two or three elements. A step that lights half the diagram has not said anything.
+- `focus`: what to zoom in on inside that diagram. `{ "kind": "all" }`, the default, means the whole diagram. A selection means "just these things": name any lanes, nodes, edges or flow steps (`messages`) by id, and the camera zooms to them while everything else dims. Focus the elements the step's change touched, so the veil lights the change. Point at two or three of them. A step that lights half the diagram has not said anything.
+
+Write every word for a smart twelve-year-old: short common words, one idea per line, active voice, things named as the diagram names them, numbers as digits. If a line needs a second read, rewrite it. Words like leverages, orchestrates, asynchronous pipeline and fan-out never belong in a step. This holds in whatever language the document is written in.
+
+The same three steps, written well and written badly. Heading first, then the body after the slash:
+
+| Write this | Not this |
+| -------- | -------- |
+| Route now queues the job instead of sending / The API call finishes at once. A worker sends the mail later. | Broadcast fan-out moves behind the queue / The API route now enqueues broadcast jobs for asynchronous batch processing instead of sending emails inline. |
+| Postmark now gets 500 emails per call / One call per batch instead of one call per person. | Batched delivery replaces single sends / The worker leverages the shared library to send emails in chunks of 500 via Postmark's batch endpoint. |
+| processBroadcast and sendSingleEmail removed / sendBroadcastBulk does their job for whole batches. | Single send functions are retired / sendBroadcastBulk replaces processBroadcast and sendSingleEmail to handle bulk deliveries in chunks. |
 
 Keep consecutive steps on the same stage together. Every change of stage flies the camera across the canvas, so a tour that alternates between two diagrams spends its time travelling.
 
