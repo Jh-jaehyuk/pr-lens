@@ -206,7 +206,7 @@ This compact fragment shows the shape. The selected ids refer to elements declar
 
 ## Walkthrough
 
-Optional. An ordered tour of the document's diagrams, which a canvas or a share page plays. 2 to 12 steps, ordered by array position.
+Optional. A canvas or a share page plays it.
 
 ```json
 {
@@ -222,6 +222,7 @@ Optional. An ordered tour of the document's diagrams, which a canvas or a share 
       {
         "id": "four-batch-calls",
         "heading": "Four batch calls, one run",
+        "body": "500 messages a call, and Postmark answers each one.",
         "stage": { "kind": "flow", "flow": "send-pipeline" },
         "focus": { "kind": "selection", "messages": ["batch-post", "batch-results"] }
       }
@@ -230,13 +231,21 @@ Optional. An ordered tour of the document's diagrams, which a canvas or a share 
 }
 ```
 
-- `heading` is 1 to 48 characters and `body`, which is optional, 1 to 140. The caps are the contract rather than advice: the rail draws one line per step.
-- Step ids are unique within the walkthrough.
-- `stage` is the picture the step plays over: `{ "kind": "view", "view": … }` or `{ "kind": "flow", "flow": … }`. Leave it out and the step plays over whatever the reader is already looking at.
-- `focus` is `{ "kind": "all" }`, the default, or a selection naming at least one lane, node, edge or flow step. Two distinct states on purpose, for the same reason a view scope has two: a step that loses the last element it named must never quietly become a step about everything.
-- `messages` names steps of a flow, so it says something only when the stage draws that flow. A `flow` stage draws its own steps. A `view` stage draws every flow when its scope is `all`, and only the flows it lists when its scope is a selection.
-- Flow step ids are unique inside their own flow, not across the document, so two flows may each carry a `retry` and the stage is the only thing that says which one a focus meant.
-- A stored map cannot carry a walkthrough. A map describes a system, and a walkthrough narrates a change through one.
+A walkthrough is a short guided tour of the diagrams. It has two to twelve steps. Each step shows one diagram, points at one part of it, and says a few words about it.
+
+Each step has:
+
+- `heading`: what this step is about, up to 48 characters. For example "Batches of 500, not one per recipient".
+- `body`: one line under the heading, up to 140 characters. For example "The new sender replaces the per-recipient loop."
+- `stage`: which diagram to show. A document can have several diagrams: its views (the drill-down diagrams) and its flows (the sequence diagrams). `{ "kind": "view", "view": "overview" }` shows the view called `overview`. `{ "kind": "flow", "flow": "send-pipeline" }` shows the flow called `send-pipeline`. Leave `stage` out and the step uses the diagram the reader is already on.
+- `focus`: what to zoom in on inside that diagram. `{ "kind": "all" }`, the default, means the whole diagram. A selection means "just these things": name any lanes, nodes, edges or flow steps (`messages`) by id, and the camera zooms to them while everything else dims. A selection must name at least one thing.
+
+The validator checks:
+
+- Every id you name exists in the document. A flow step you name must belong to the flow the stage shows, because flow step ids are only unique inside their own flow.
+- `messages` needs a stage that shows a flow. Leave it out when the stage is an architecture view.
+- Step ids are unique within the walkthrough. Two steps minimum, twelve maximum.
+- A stored map never carries a walkthrough. A map describes the system; a walkthrough tells the story of one change.
 
 ## Layout
 

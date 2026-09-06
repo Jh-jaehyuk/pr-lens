@@ -103,11 +103,11 @@ Keep data-flow views as separate roots rather than nesting them in the architect
 
 ## Writing a walkthrough
 
-A document can carry a `walkthrough`: an ordered set of steps, each one a heading and the part of one diagram it points at. A canvas plays it, and the reader scrolls through it.
+A walkthrough is a short guided tour of the diagrams. It has two to twelve steps. Each step shows one diagram, points at one part of it, and says a few words about it. A canvas plays it, and the reader scrolls through it.
 
-Write one when the document has more than one view, or a flow worth reading in order. Leave it out when there is a single picture and nothing to point at, because a tour of one thing is a caption.
+The contract leaves a walkthrough optional. Write one anyway for anything that is not trivial: more than one diagram, a diagram with several changed parts, or any flow. Skip it only when the document is one small diagram whose single step would just repeat the title.
 
-Aim for three to seven steps. The contract allows two to twelve.
+Aim for three to seven steps.
 
 ```json
 "walkthrough": {
@@ -129,12 +129,21 @@ Aim for three to seven steps. The contract allows two to twelve.
 }
 ```
 
-- A heading is at most 48 characters, and it is a beat rather than a label: "The old path goes dark", not "Removed functions". A `body` is optional, one line, at most 140 characters. Write for someone looking at the picture, not reading a paragraph.
-- `stage` is the diagram the step plays over: one of your views, or one of your flows on its own. Open on the widest view with the focus left out, so the reader sees the whole thing before it narrows.
-- `focus` is `all`, the default, or a selection of `lanes`, `nodes`, `edges` and `messages`. Point at two or three elements. A step that lights half the diagram has not said anything.
-- Keep consecutive steps on the same stage together. Every change of stage flies the camera across the canvas, so a tour that alternates between two diagrams spends its time travelling.
+Each step has:
 
-`messages` names steps of a flow, and a flow step's id is unique inside its own flow rather than across the document: two flows may each carry a `retry`. So a focused flow step has to be one the step's own stage draws. A `flow` stage draws its own steps. A `view` stage draws every flow when its scope is `all`, and only the flows it lists when its scope is a selection. Anything outside that is a `BROKEN_REFERENCE`, and focusing flow steps with no stage at all is an `INVALID_DOCUMENT`.
+- `heading`: what this step is about, up to 48 characters. Write a beat rather than a label: "The old path goes dark", not "Removed functions".
+- `body`: one line under the heading, up to 140 characters. For example "The new sender replaces the per-recipient loop." Write for someone looking at the picture, not reading a paragraph.
+- `stage`: which diagram to show. A document can have several diagrams: its views (the drill-down diagrams) and its flows (the sequence diagrams). `{ "kind": "view", "view": "overview" }` shows the view called `overview`. `{ "kind": "flow", "flow": "send-pipeline" }` shows the flow called `send-pipeline`. Leave `stage` out and the step uses the diagram the reader is already on. Open on the widest view with the focus left out, so the reader sees the whole thing before it narrows.
+- `focus`: what to zoom in on inside that diagram. `{ "kind": "all" }`, the default, means the whole diagram. A selection means "just these things": name any lanes, nodes, edges or flow steps (`messages`) by id, and the camera zooms to them while everything else dims. Point at two or three elements. A step that lights half the diagram has not said anything.
+
+Keep consecutive steps on the same stage together. Every change of stage flies the camera across the canvas, so a tour that alternates between two diagrams spends its time travelling.
+
+The validator checks:
+
+- Every id you name exists in the document. A flow step you name must belong to the flow the stage shows, because flow step ids are only unique inside their own flow.
+- `messages` needs a stage that shows a flow. Leave it out when the stage is an architecture view.
+- Step ids are unique within the walkthrough. Two steps minimum, twelve maximum.
+- A stored map never carries a walkthrough. A map describes the system; a walkthrough tells the story of one change.
 
 The field arrived with contract 0.1.1. A CLI older than 0.4.0 does not know it and rejects the whole document as an invented field, so validate with a current one.
 

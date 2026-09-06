@@ -44,7 +44,7 @@ The cap is the worst case, every theme rendered, not what a particular render wo
 
 ## Walkthroughs
 
-A document may carry a `walkthrough`: an ordered set of two to twelve steps. Each step is a heading, an optional line of body, the diagram it plays over and the part of that diagram it points at.
+A document may carry a `walkthrough`.
 
 ```ts
 walkthrough: {
@@ -52,6 +52,7 @@ walkthrough: {
     {
       id: "blast-radius",
       heading: "One change, three lanes",
+      body: "Everything the pull request touched, at once.",
       stage: { kind: "view", view: "overview" },
     },
     {
@@ -65,15 +66,23 @@ walkthrough: {
 }
 ```
 
-- A heading is at most 48 characters and a body at most 140. The caps live in the contract rather than in a style guide, so no producer can pad its way past them.
-- `stage` says which picture a step plays over: one of the document's drill-down views, or one of its flows on its own. Leave it out and the step plays over whatever the reader is already looking at. Which picture that is belongs to the surface showing the document, not here.
-- `focus` is either `all` or a selection of lanes, nodes, edges and flow steps. They are two states for the same reason a view scope has two: a step that loses the last element it named must not quietly become a step about everything.
-- `messages` names steps of a flow, so it only means something when the stage draws that flow. A `flow` stage draws its own steps. A `view` stage draws every flow when its scope is `all`, and only the flows it lists when its scope is a selection. A flow step outside that is a `BROKEN_REFERENCE`, and one named with no stage at all is an `INVALID_DOCUMENT`.
-- A flow step's id is unique within its own flow, not across the document, so two flows may each carry a step called `retry` and neither is wrong for it. The stage is what decides which one a focus means, and it is the only thing that can decide.
-- Two steps is the floor, because one step is a caption. Twelve is the ceiling, because a reader loses the thread long before that.
-- A stored map cannot carry one. A map describes a system and a walkthrough narrates a change through one, so `graphSnapshotIssues` reports it as `NOT_A_SNAPSHOT`.
+A walkthrough is a short guided tour of the diagrams. It has two to twelve steps. Each step shows one diagram, points at one part of it, and says a few words about it.
 
-A patch carries a walkthrough forward the way it carries the drill-down tree. `pruneWalkthrough` is exported for anything else that removes elements from a document and has to leave the tour pointing at what is left.
+Each step has:
+
+- `heading`: what this step is about, up to 48 characters. For example "Batches of 500, not one per recipient".
+- `body`: one line under the heading, up to 140 characters. For example "The new sender replaces the per-recipient loop."
+- `stage`: which diagram to show. A document can have several diagrams: its views (the drill-down diagrams) and its flows (the sequence diagrams). `{ "kind": "view", "view": "overview" }` shows the view called `overview`. `{ "kind": "flow", "flow": "send-pipeline" }` shows the flow called `send-pipeline`. Leave `stage` out and the step uses the diagram the reader is already on.
+- `focus`: what to zoom in on inside that diagram. `{ "kind": "all" }` means the whole diagram. A selection means "just these things": name any lanes, nodes, edges or flow steps (`messages`) by id, and the camera zooms to them while everything else dims. A selection must name at least one thing.
+
+The validator checks:
+
+- Every id you name exists in the document. A flow step you name must belong to the flow the stage shows, because flow step ids are only unique inside their own flow.
+- `messages` needs a stage that shows a flow. Leave it out when the stage is an architecture view.
+- Step ids are unique within the walkthrough. Two steps minimum, twelve maximum.
+- A stored map never carries a walkthrough. A map describes the system; a walkthrough tells the story of one change.
+
+When a patch or a correction removes something from the document, the walkthrough follows: a step loses the names that are gone, a step with nothing left to point at or whose diagram is gone is dropped, and if fewer than two steps remain the walkthrough is dropped. `pruneWalkthrough` does this and is exported for anything else that removes parts of a document.
 
 ## Deltas
 
