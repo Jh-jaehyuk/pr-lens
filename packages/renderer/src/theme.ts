@@ -30,13 +30,18 @@ export type Palette = {
   pill: string;
   pillBorder: string;
   lifeline: string;
+  /** Strokes and text split per tone: on a light ground, a stroke bright
+   * enough to pop is too pale for badge text. */
   added: string;
+  addedText: string;
   addedFill: string;
   addedBorder: string;
   modified: string;
+  modifiedText: string;
   modifiedFill: string;
   modifiedBorder: string;
   removed: string;
+  removedText: string;
   removedFill: string;
   removedBorder: string;
   neutralFill: string;
@@ -44,28 +49,31 @@ export type Palette = {
 };
 
 const LIGHT: Palette = {
-  background: "#ffffff",
-  dot: "rgba(140,149,159,.35)",
-  lane: "#f6f8fa",
+  background: "#f4f5f7",
+  dot: "rgba(140,149,159,.5)",
+  lane: "rgba(255,255,255,.55)",
   card: "#ffffff",
   cardBorder: "#d1d9e0",
   foreground: "#1f2328",
   muted: "#59636e",
   edge: "#8c959f",
-  chip: "#f6f8fa",
+  chip: "#f1f3f5",
   pill: "#ffffff",
   pillBorder: "#d8dee4",
   lifeline: "#d1d9e0",
-  added: "#1a7f37",
-  addedFill: "#dafbe1",
-  addedBorder: "rgba(31,136,61,.4)",
-  modified: "#9a6700",
-  modifiedFill: "#fff8c5",
-  modifiedBorder: "rgba(154,103,0,.35)",
-  removed: "#d1242f",
-  removedFill: "#ffebe9",
-  removedBorder: "rgba(209,36,47,.35)",
-  neutralFill: "#f6f8fa",
+  added: "#1f883d",
+  addedText: "#116329",
+  addedFill: "#b9f0c4",
+  addedBorder: "rgba(31,136,61,.55)",
+  modified: "#bf8700",
+  modifiedText: "#7d4e00",
+  modifiedFill: "#fae17d",
+  modifiedBorder: "rgba(154,103,0,.55)",
+  removed: "#cf222e",
+  removedText: "#a40e26",
+  removedFill: "#ffcecb",
+  removedBorder: "rgba(207,34,46,.5)",
+  neutralFill: "#f1f3f5",
   shadow: "rgba(31,35,40,.14)",
 };
 
@@ -83,12 +91,15 @@ const DARK: Palette = {
   pillBorder: "#21262d",
   lifeline: "#30363d",
   added: "#3fb950",
+  addedText: "#3fb950",
   addedFill: "rgba(46,160,67,.15)",
   addedBorder: "rgba(63,185,80,.4)",
   modified: "#d29922",
+  modifiedText: "#d29922",
   modifiedFill: "rgba(187,128,9,.15)",
   modifiedBorder: "rgba(210,153,34,.4)",
   removed: "#f85149",
+  removedText: "#f85149",
   removedFill: "rgba(248,81,73,.12)",
   removedBorder: "rgba(248,81,73,.4)",
   neutralFill: "rgba(110,118,129,.18)",
