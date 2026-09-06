@@ -21,10 +21,10 @@
   <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/github/license/coldteadotai/pr-lens?style=flat-square&labelColor=21262d&color=21262d"></a>
 </p>
 
-<h3 align="center"><a href="https://github.com/apps/coldtea-pr-lens">Install the GitHub App</a></h3>
+<h3 align="center"><a href="https://github.com/apps/coldtea-pr-lens">Install the GitHub App</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="https://skills.sh/coldteadotai/pr-lens">Install the Skill</a></h3>
 
 <p align="center">
-  <sub>Free for open source. No API key, no workflow file.</sub>
+  <sub>Free for open source. &nbsp;&nbsp;·&nbsp;&nbsp; Or let your coding agent draw it: <code>npx skills add coldteadotai/pr-lens</code></sub>
 </p>
 
 <p align="center">
