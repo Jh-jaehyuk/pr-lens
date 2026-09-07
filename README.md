@@ -385,6 +385,12 @@ Node 20.11+ and pnpm 10.
 
 <br />
 
+## Contributing
+
+Open an issue first and wait for one of us to approve it before you (or agents) write any code. A pull request with no approved issue behind it will be closed. Once your issue is approved, link it from the pull request.
+
+<br />
+
 ## Why we built this
 
 [Reducing the cognitive load of reviewing PRs](https://www.coldtea.ai/blog/reducing-cognitive-load-ai-generated-prs)
